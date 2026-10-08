@@ -108,5 +108,44 @@ public data class Puzzle(
     }
 }
 
+/**
+ * Fill the empty cells of a grid with random letters.
+ *
+ * @property grid the matrix from [Puzzle.grid]: rows of one-letter strings, empty cells hold [empty]
+ * @property lang language of the letters; engine default [Language.ES]. Letters follow its letter frequency.
+ * @property accents true (engine default) uses the language's accented/native letters (Ñ, Ç, Ã, Ä, ẞ…); false uses A-Z only
+ * @property seed same request and seed, same filler. [Lettras.fill] picks a random one when this is null.
+ * @property empty what marks an empty cell; engine default "-"
+ * @property words the hidden words; when given, the filler never creates an extra copy of one
+ */
+@Serializable
+public data class FillRequest(
+    val grid: List<List<String>>,
+    val lang: Language? = null,
+    val accents: Boolean? = null,
+    val seed: Long? = null,
+    val empty: String? = null,
+    val words: List<String>? = null,
+)
+
+/**
+ * The completed grid.
+ *
+ * @property filled number of cells that were filled
+ * @property seed the seed used, so the filler can be reproduced
+ * @property ambiguous words that still have an accidental extra copy (practically always empty)
+ */
+@Serializable
+public data class FillResult(
+    val grid: List<List<String>>,
+    val filled: Int,
+    val seed: Long,
+    val ambiguous: List<String>,
+    val engineVersion: String,
+) {
+    /** The grid as text, one row per line. */
+    public fun render(): String = grid.joinToString("\n") { it.joinToString(" ") }
+}
+
 /** The request was invalid or the engine failed. [message] says why. */
 public class LettrasException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)

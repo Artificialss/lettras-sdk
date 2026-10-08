@@ -38,6 +38,21 @@ Words: gato, perro, piña, mono, cebra
 
 `piña` takes four cells (the `Ñ` is one). `puzzle.grid` is plain data: `List<List<String>>`, one letter per cell.
 
+## Filling the empty cells
+
+`generate` leaves empty cells as `-`. `fill` completes them with random letters, in a language, with accents on or off:
+
+```kotlin
+val puzzle = lettras.generate(PuzzleRequest(listOf("gato", "perro", "piña"), rows = 9, cols = 12, position = Position.MIXED, seed = 8))
+val done = lettras.fill(puzzle, lang = Language.ES, accents = true)   // protects the puzzle's words from accidental copies
+done.grid                                  // List<List<String>>, no "-" left
+val filledPuzzle = puzzle.copy(grid = done.grid)
+lettras.fill(puzzle.grid, Language.DE, accents = false, seed = 5)   // a bare matrix, plain A-Z, repeatable
+```
+
+Letters follow how common they are in the language (`Language.EN` never has accents, `Language.DE` can include `ẞ`).
+Without a `seed` every call gives different letters. `FillResult` has `grid`, `filled`, `seed` and `ambiguous`.
+
 ## Install
 
 Not published to a repository yet. Until then, build it locally:
@@ -107,7 +122,7 @@ the next step; the API above stays the same.
 ## Tests
 
 ```bash
-cd kotlin && ./gradlew test      # 17 tests
+cd kotlin && ./gradlew test      # 24 tests
 ```
 
 Besides behaviour tests (positions, German `ẞ`, classic mode, rejected and unplaced words, thread safety, a 30×30

@@ -34,3 +34,16 @@ pub fn render_puzzle(p: &Value) -> String {
     }
     out
 }
+
+/// Plain-text view of just a grid (a fill result): one row per line.
+pub fn render_matrix(v: &Value) -> String {
+    v["grid"]
+        .as_array()
+        .map(|rows| {
+            rows.iter()
+                .map(|r| r.as_array().map(|cells| cells.iter().filter_map(Value::as_str).collect::<Vec<_>>().join(" ")).unwrap_or_default())
+                .collect::<Vec<_>>()
+                .join("\n")
+        })
+        .unwrap_or_default()
+}

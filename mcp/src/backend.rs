@@ -15,6 +15,9 @@ const FUEL: u64 = 20_000_000_000;
 pub trait PuzzleBackend: Send + Sync {
     /// Takes the engine input (camelCase JSON), returns the puzzle JSON or a message for the model.
     async fn generate(&self, input: Value) -> Result<Value, String>;
+
+    /// Takes a fill request (camelCase JSON with a `grid`), returns the grid with its empty cells filled.
+    async fn fill(&self, input: Value) -> Result<Value, String>;
 }
 
 /// Runs the embedded engine in-process (wasmi). No network, no credentials, no environment variables.
@@ -33,7 +36,7 @@ impl LocalEngine {
     }
 
     /// One call on a fresh instance, so no state survives between requests.
-    fn run(&self, input: &str) -> Result<Result<String, String>, String> {
+    fn run(&self, function: &str, input: &str) -> Result<Result<String, String>, String> {
         let mut store = Store::new(&self.engine, ());
         store.set_fuel(FUEL).map_err(|e| e.to_string())?;
         let instance = Linker::<()>::new(&self.engine)
@@ -43,7 +46,7 @@ impl LocalEngine {
         let memory = instance.get_memory(&store, "memory").ok_or("engine has no memory export")?;
         let alloc = instance.get_typed_func::<u32, u32>(&store, "lettras_alloc").map_err(|e| e.to_string())?;
         let free = instance.get_typed_func::<(u32, u32), ()>(&store, "lettras_free").map_err(|e| e.to_string())?;
-        let generate = instance.get_typed_func::<(u32, u32), i64>(&store, "lettras_generate").map_err(|e| e.to_string())?;
+        let generate = instance.get_typed_func::<(u32, u32), i64>(&store, function).map_err(|e| e.to_string())?;
         let result_ptr = instance.get_typed_func::<(), u32>(&store, "lettras_result_ptr").map_err(|e| e.to_string())?;
 
         let bytes = input.as_bytes();
@@ -64,15 +67,25 @@ impl LocalEngine {
     }
 }
 
-#[async_trait]
-impl PuzzleBackend for Arc<LocalEngine> {
-    async fn generate(&self, input: Value) -> Result<Value, String> {
+impl LocalEngine {
+    async fn call(self: &Arc<Self>, function: &'static str, input: Value) -> Result<Value, String> {
         let engine = Arc::clone(self);
         let json = input.to_string();
-        tokio::task::spawn_blocking(move || engine.run(&json))
+        tokio::task::spawn_blocking(move || engine.run(function, &json))
             .await
             .map_err(|_| "engine task failed".to_string())?
             .and_then(|r| r)
             .and_then(|text| serde_json::from_str(&text).map_err(|e| format!("engine returned invalid JSON: {e}")))
+    }
+}
+
+#[async_trait]
+impl PuzzleBackend for Arc<LocalEngine> {
+    async fn generate(&self, input: Value) -> Result<Value, String> {
+        self.call("lettras_generate", input).await
+    }
+
+    async fn fill(&self, input: Value) -> Result<Value, String> {
+        self.call("lettras_fill", input).await
     }
 }

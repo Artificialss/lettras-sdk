@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "org.lettras"
-version = "0.1.0"
+version = "0.2.0"
 
 dependencies {
     // WebAssembly runtime written in pure Java: no native code, runs on any JVM and on Android.

@@ -48,7 +48,7 @@ async fn lists_tools_with_schemas() {
     let r = rpc(json!({ "jsonrpc": "2.0", "id": 1, "method": "tools/list" })).await.unwrap();
     let tools = r["result"]["tools"].as_array().unwrap();
     let names: Vec<_> = tools.iter().map(|t| t["name"].as_str().unwrap()).collect();
-    assert_eq!(names, ["generate_word_search", "list_languages"]);
+    assert_eq!(names, ["generate_word_search", "fill_word_search", "list_languages"]);
     assert_eq!(tools[0]["inputSchema"]["required"], json!(["words", "rows", "cols"]));
 }
 
@@ -229,4 +229,105 @@ async fn http_limit_follows_the_forwarded_address() {
     assert_eq!(send("198.51.100.1, 10.0.0.1").await["result"]["isError"], false);
     assert_eq!(send("198.51.100.1, 10.0.0.2").await["result"]["isError"], true, "same first hop = same client");
     assert_eq!(send("198.51.100.2").await["result"]["isError"], false);
+}
+
+// ---- fill_word_search ----
+
+fn fill_call(args: Value) -> Value {
+    json!({ "jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": { "name": "fill_word_search", "arguments": args } })
+}
+
+async fn small_grid() -> Value {
+    let r = rpc(call(json!({ "words": ["gato", "perro", "piña"], "rows": 8, "cols": 10, "position": "mixed", "seed": 8 }))).await.unwrap();
+    r["result"]["structuredContent"].clone()
+}
+
+#[tokio::test]
+async fn fill_matches_the_npm_package_exactly() {
+    let fixtures: Vec<Value> = serde_json::from_str(include_str!("fixtures/fill-parity.json")).unwrap();
+    assert!(fixtures.len() >= 6);
+    let e = engine();
+    for (i, f) in fixtures.iter().enumerate() {
+        let got = lettras_mcp::PuzzleBackend::fill(&e, f["input"].clone()).await.expect("fill");
+        assert_eq!(got, f["output"], "fill fixture {i} differs from the npm package");
+    }
+}
+
+#[tokio::test]
+async fn fills_a_generated_grid_through_the_tool() {
+    let puzzle = small_grid().await;
+    let r = rpc(fill_call(json!({ "grid": puzzle["grid"], "words": puzzle["words"], "lang": "es", "seed": 3 }))).await.unwrap();
+    let res = &r["result"];
+    assert_eq!(res["isError"], false, "{res}");
+    let grid = res["structuredContent"]["grid"].as_array().unwrap();
+    assert_eq!(grid.len(), 8);
+    assert!(grid.iter().flat_map(|r| r.as_array().unwrap()).all(|c| c != "-"), "no empty cells left");
+    let text = res["content"][0]["text"].as_str().unwrap();
+    assert!(text.contains("Filled ") && text.contains("empty cells"), "{text}");
+    assert_eq!(res["structuredContent"]["ambiguous"], json!([]));
+}
+
+async fn filler_letters(accents: bool, lang: &str) -> Vec<String> {
+    let r = rpc(fill_call(json!({ "grid": vec![vec!["-"; 30]; 30], "lang": lang, "accents": accents, "seed": 4 }))).await.unwrap();
+    r["result"]["structuredContent"]["grid"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .flat_map(|row| row.as_array().unwrap().clone())
+        .map(|c| c.as_str().unwrap().to_string())
+        .collect()
+}
+
+#[tokio::test]
+async fn accents_off_is_plain_and_accents_on_is_native() {
+    assert!(filler_letters(false, "es").await.iter().all(|c| c.len() == 1 && c.chars().all(|ch| ch.is_ascii_uppercase())));
+    assert!(filler_letters(true, "es").await.contains(&"Ñ".to_string()));
+    assert!(filler_letters(true, "de").await.contains(&"ẞ".to_string()));
+    assert!(filler_letters(true, "en").await.iter().all(|c| c.chars().all(|ch| ch.is_ascii_uppercase())), "English has no accents");
+}
+
+#[tokio::test]
+async fn without_a_seed_each_call_differs_and_with_one_it_repeats() {
+    let puzzle = small_grid().await;
+    let grid_of = |r: &Value| r["result"]["structuredContent"]["grid"].clone();
+    let a = rpc(fill_call(json!({ "grid": puzzle["grid"] }))).await.unwrap();
+    let b = rpc(fill_call(json!({ "grid": puzzle["grid"] }))).await.unwrap();
+    assert_ne!(grid_of(&a), grid_of(&b), "unseeded fills should differ");
+    let c = rpc(fill_call(json!({ "grid": puzzle["grid"], "seed": 7 }))).await.unwrap();
+    let d = rpc(fill_call(json!({ "grid": puzzle["grid"], "seed": 7 }))).await.unwrap();
+    assert_eq!(grid_of(&c), grid_of(&d));
+}
+
+#[tokio::test]
+async fn fill_does_not_use_up_the_free_puzzle_limit() {
+    let (e, g) = (engine(), gate(1));
+    let puzzle = handle_message(&small(1), &e, &g, "198.51.100.1").await.unwrap();
+    let grid = puzzle["result"]["structuredContent"]["grid"].clone();
+    for _ in 0..5 {
+        let r = handle_message(&fill_call(json!({ "grid": grid })), &e, &g, "198.51.100.1").await.unwrap();
+        assert_eq!(r["result"]["isError"], false, "fill must stay available after the limit");
+    }
+    let blocked = handle_message(&small(2), &e, &g, "198.51.100.1").await.unwrap();
+    assert_eq!(blocked["result"]["isError"], true, "the puzzle limit still applies to generating");
+}
+
+#[tokio::test]
+async fn bad_fill_arguments_become_tool_errors() {
+    for (args, expect) in [
+        (json!({}), "grid"),
+        (json!({ "grid": [] }), "rows"),
+        (json!({ "grid": [["-", "-"], ["-"]] }), "same number"),
+        (json!({ "grid": [[1, 2]] }), "cell"),
+        (json!({ "grid": vec![vec!["-"; 31]; 3] }), "columns"),
+        (json!({ "grid": vec![vec!["-"; 3]; 31] }), "rows"),
+        (json!({ "grid": [["-"]], "lang": "xx" }), "lang"),
+        (json!({ "grid": [["-"]], "accents": "yes" }), "accents"),
+        (json!({ "grid": [["-"]], "seed": -3 }), "seed"),
+        (json!({ "grid": [["-"]], "words": "gato" }), "words"),
+        (json!({ "grid": [["-"]], "surprise": 1 }), "unknown argument"),
+    ] {
+        let r = rpc(fill_call(args.clone())).await.unwrap();
+        assert_eq!(r["result"]["isError"], true, "{args}");
+        assert!(r["result"]["content"][0]["text"].as_str().unwrap().contains(expect), "{args}: {}", r["result"]["content"][0]["text"]);
+    }
 }

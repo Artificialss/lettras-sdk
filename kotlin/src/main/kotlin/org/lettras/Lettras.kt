@@ -1,5 +1,6 @@
 package org.lettras
 
+import kotlin.random.Random
 import kotlinx.serialization.json.Json
 
 /**
@@ -40,6 +41,33 @@ public class Lettras {
         }
         return json.decodeFromString(Puzzle.serializer(), output)
     }
+
+    /**
+     * Fills the empty cells with random letters. If [FillRequest.seed] is null a random one is chosen, so the filler
+     * differs on every call; pass a seed for a repeatable result. Throws [LettrasException] on invalid input.
+     */
+    public fun fill(request: FillRequest): FillResult {
+        val withSeed = if (request.seed == null) request.copy(seed = Random.nextLong(0L, 4_294_967_296L)) else request
+        val output = try {
+            engine.fill(json.encodeToString(FillRequest.serializer(), withSeed))
+        } catch (e: LettrasException) {
+            throw e
+        } catch (e: Exception) {
+            throw LettrasException("the engine failed: ${e.message}", e)
+        }
+        return json.decodeFromString(FillResult.serializer(), output)
+    }
+
+    /**
+     * Completes a [Puzzle] from [generate]: its words are protected from accidental extra copies.
+     * Use `puzzle.copy(grid = result.grid)` to get the filled puzzle back.
+     */
+    public fun fill(puzzle: Puzzle, lang: Language = Language.ES, accents: Boolean = true, seed: Long? = null): FillResult =
+        fill(FillRequest(grid = puzzle.grid, lang = lang, accents = accents, seed = seed, words = puzzle.words))
+
+    /** Fills a bare matrix (rows of one-letter strings, empty cells `-`). */
+    public fun fill(grid: List<List<String>>, lang: Language = Language.ES, accents: Boolean = true, seed: Long? = null): FillResult =
+        fill(FillRequest(grid = grid, lang = lang, accents = accents, seed = seed))
 
     /** Shorthand for [generate] with the common options. */
     public fun generate(

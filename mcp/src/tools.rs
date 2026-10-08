@@ -2,10 +2,11 @@ use serde_json::{json, Value};
 
 use crate::backend::PuzzleBackend;
 use crate::limits::Gate;
-use crate::render::render_puzzle;
+use crate::render::{render_matrix, render_puzzle};
 
 const LANGS: [&str; 6] = ["es", "en", "pt", "fr", "de", "it"];
 const POSITIONS: [&str; 3] = ["horizontal", "vertical", "mixed"];
+const FILL_ALLOWED: [&str; 6] = ["grid", "lang", "accents", "seed", "words", "empty"];
 const ALLOWED: [&str; 9] = ["words", "rows", "cols", "position", "difficulty", "clustering", "seed", "lang", "classicMode"];
 
 /// Tool definitions returned by `tools/list`.
@@ -14,7 +15,7 @@ pub fn list() -> Value {
         {
             "name": "generate_word_search",
             "title": "Generate a word search",
-            "description": "Create a word-search puzzle (sopa de letras) from a list of words. Keeps native letters (Ñ, Ç, Ã, Ä, ẞ, È…) as one cell each. Returns the grid, where every word is hidden, and any words that did not fit. The same seed always gives the same puzzle.",
+            "description": "Create a word-search puzzle (sopa de letras) from a list of words. Keeps native letters (Ñ, Ç, Ã, Ä, ẞ, È…) as one cell each. Returns the grid, where every word is hidden, and any words that did not fit. Empty cells are marked \"-\": call fill_word_search with the grid to complete it with random letters. The same seed always gives the same puzzle.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -29,6 +30,24 @@ pub fn list() -> Value {
                     "classicMode": { "type": "boolean", "description": "Strip accents in the grid (ñ becomes N)." }
                 },
                 "required": ["words", "rows", "cols"],
+                "additionalProperties": false
+            }
+        },
+        {
+            "name": "fill_word_search",
+            "title": "Fill a word search with random letters",
+            "description": "Completes a word search: takes the grid from generate_word_search (empty cells are \"-\") and fills them with random letters in the chosen language, with accents on or off. Letters follow how common they are in that language. Pass the puzzle's words so the filler never creates an extra copy of one.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "grid": { "type": "array", "items": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 4 }, "minItems": 1, "maxItems": 30 }, "minItems": 1, "maxItems": 30, "description": "The grid from generate_word_search: rows of one-letter strings, \"-\" for empty cells." },
+                    "lang": { "type": "string", "enum": LANGS, "description": "Language of the letters. Default es." },
+                    "accents": { "type": "boolean", "description": "true (default): use the language's accented/native letters (Ñ, Ç, Ã, Ä, ẞ…). false: plain A-Z only." },
+                    "words": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 30 }, "maxItems": 60, "description": "The hidden words, so the filler cannot create an extra copy of one." },
+                    "seed": { "type": "integer", "minimum": 0, "description": "Repeatable filler. Omit for a different filler every time." },
+                    "empty": { "type": "string", "maxLength": 4, "description": "What marks an empty cell. Default \"-\"." }
+                },
+                "required": ["grid"],
                 "additionalProperties": false
             }
         },
@@ -101,11 +120,89 @@ pub fn validate(args: &Value) -> Result<(), String> {
     Ok(())
 }
 
+/// Checks `fill_word_search` arguments. Returns the first problem, in words a model can act on.
+pub fn validate_fill(args: &Value) -> Result<(), String> {
+    let obj = args.as_object().ok_or("arguments must be an object")?;
+    let grid = obj.get("grid").and_then(Value::as_array).ok_or("grid: an array of rows is required")?;
+    if grid.is_empty() || grid.len() > 30 {
+        return Err("grid: 1 to 30 rows".into());
+    }
+    let mut width = None;
+    for row in grid {
+        let cells = row.as_array().ok_or("grid: every row must be an array of strings")?;
+        if cells.is_empty() || cells.len() > 30 {
+            return Err("grid: 1 to 30 columns".into());
+        }
+        if *width.get_or_insert(cells.len()) != cells.len() {
+            return Err("grid: every row must have the same number of cells".into());
+        }
+        if !cells.iter().all(|c| c.as_str().is_some_and(|c| (1..=4).contains(&c.chars().count()))) {
+            return Err("grid: every cell must be a short string (one letter, or \"-\" for empty)".into());
+        }
+    }
+    if let Some(v) = obj.get("lang") {
+        if !v.as_str().is_some_and(|l| LANGS.contains(&l)) {
+            return Err("lang: es, en, pt, fr, de or it".into());
+        }
+    }
+    if obj.get("accents").is_some_and(|v| !v.is_boolean()) {
+        return Err("accents: true or false".into());
+    }
+    if obj.get("seed").is_some_and(|v| !v.as_u64().is_some_and(|n| n <= u64::from(u32::MAX))) {
+        return Err("seed: an integer from 0 to 4294967295".into());
+    }
+    if let Some(v) = obj.get("words") {
+        let ok = v.as_array().is_some_and(|w| w.len() <= 60 && w.iter().all(|w| w.as_str().is_some_and(|w| (1..=30).contains(&w.chars().count()))));
+        if !ok {
+            return Err("words: up to 60 strings of 1 to 30 characters".into());
+        }
+    }
+    if obj.get("empty").is_some_and(|v| !v.as_str().is_some_and(|e| (1..=4).contains(&e.chars().count()))) {
+        return Err("empty: a short string such as \"-\"".into());
+    }
+    if let Some(unknown) = obj.keys().find(|k| !FILL_ALLOWED.contains(&k.as_str())) {
+        return Err(format!("unknown argument: {unknown}"));
+    }
+    Ok(())
+}
+
+/// A random seed for callers who did not give one: the filler should differ on every call.
+fn random_seed() -> u64 {
+    use std::collections::hash_map::RandomState;
+    use std::hash::{BuildHasher, Hasher};
+    let mut h = RandomState::new().build_hasher();
+    h.write_u64(std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_nanos() as u64));
+    h.finish() % (u64::from(u32::MAX) + 1)
+}
+
+async fn fill(args: &Value, backend: &dyn PuzzleBackend) -> Value {
+    // Not counted against the free puzzle limit: it only completes a puzzle that was already generated.
+    if let Err(e) = validate_fill(args) {
+        return error_result(e);
+    }
+    let mut request = args.clone();
+    if request.get("seed").is_none() {
+        request["seed"] = json!(random_seed());
+    }
+    match backend.fill(request).await {
+        Ok(out) => {
+            let n = out["filled"].as_u64().unwrap_or(0);
+            let mut text = format!("{}\n\nFilled {n} empty cells.", render_matrix(&out));
+            if out["ambiguous"].as_array().is_some_and(|a| !a.is_empty()) {
+                text.push_str(" Note: some words appear more than once by accident; call again for a different filler.");
+            }
+            text_result(text, Some(out))
+        }
+        Err(e) => error_result(e),
+    }
+}
+
 /// Runs a tool. Tool failures are results with `isError: true` (so the model can react), not protocol errors.
 /// `client` identifies the caller (IP) for the free-tier limit.
 pub async fn call(name: &str, args: &Value, backend: &dyn PuzzleBackend, gate: &Gate, client: &str) -> Option<Value> {
     match name {
         "generate_word_search" => Some(generate(args, backend, gate, client).await),
+        "fill_word_search" => Some(fill(args, backend).await),
         "list_languages" => Some(text_result(
             "es Español: Á É Í Ó Ú Ü Ñ\nen English: none\npt Português: Á Â Ã À É Ê Í Ó Ô Õ Ú Ç\nfr Français: À Â Æ Ç É È Ê Ë Î Ï Ô Œ Ù Û Ü Ÿ\nde Deutsch: Ä Ö Ü ẞ\nit Italiano: À È É Ì Ò Ù".into(),
             None,

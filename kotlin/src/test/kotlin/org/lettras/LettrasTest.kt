@@ -163,4 +163,68 @@ class LettrasTest {
         repeat(3) { interpreted.generate(typical) }
         println("interpreter, 10x10 with 8 words: ${"%.2f".format((System.nanoTime() - start) / 3e9)} s per puzzle")
     }
+
+    // ---- fill ----
+
+    @Serializable
+    class FillFixture(val input: FillRequest, val output: FillResult)
+
+    private fun fillFixtures(): List<FillFixture> {
+        val text = LettrasTest::class.java.getResourceAsStream("/fill-parity.json")!!.bufferedReader().readText()
+        return json.decodeFromString(text)
+    }
+
+    @Test
+    fun `fill matches the npm package exactly (shared fixtures)`() {
+        val fixtures = fillFixtures()
+        assertTrue(fixtures.size >= 6)
+        fixtures.forEachIndexed { i, f -> assertEquals(f.output, lettras.fill(f.input), "fill fixture $i differs from the npm package") }
+    }
+
+    @Test
+    fun `fill completes a puzzle and keeps the hidden letters`() {
+        val p = lettras.generate(PuzzleRequest(animals, rows = 12, cols = 12, position = Position.MIXED, seed = 8))
+        val f = lettras.fill(p, lang = Language.ES, seed = 1)
+        assertTrue(f.grid.flatten().none { it == "-" })
+        assertEquals(p.grid.flatten().count { it == "-" }, f.filled)
+        p.grid.forEachIndexed { r, row -> row.forEachIndexed { c, cell -> if (cell != "-") assertEquals(cell, f.grid[r][c]) } }
+        assertEquals(emptyList(), f.ambiguous)
+        assertEquals(12, f.render().lines().size)
+    }
+
+    @Test
+    fun `fill is repeatable with a seed and different without one`() {
+        val p = lettras.generate(animals, rows = 12, seed = 8)
+        assertEquals(lettras.fill(p, seed = 5), lettras.fill(p, seed = 5))
+        val seeds = (1..5).map { lettras.fill(p).seed }.toSet()
+        assertTrue(seeds.size > 1, "unseeded calls should choose different seeds")
+    }
+
+    @Test
+    fun `fill accents off is plain A-Z and accents on uses native letters`() {
+        val blank = List(40) { List(40) { "-" } }
+        assertTrue(lettras.fill(blank, Language.ES, accents = false, seed = 3).grid.flatten().all { it.length == 1 && it[0] in 'A'..'Z' })
+        assertContains(lettras.fill(blank, Language.ES, accents = true, seed = 3).grid.flatten(), "Ñ")
+        assertContains(lettras.fill(blank, Language.DE, accents = true, seed = 3).grid.flatten(), "ẞ")
+        assertTrue(lettras.fill(blank, Language.EN, accents = true, seed = 3).grid.flatten().all { it[0] in 'A'..'Z' }, "English has no accents")
+    }
+
+    @Test
+    fun `fill never adds a second copy of a hidden word`() {
+        val p = lettras.generate(PuzzleRequest(listOf("ab", "cd", "ef", "gh"), rows = 8, cols = 8, position = Position.MIXED, seed = 2, lang = Language.EN))
+        (0L until 15L).forEach { seed -> assertEquals(emptyList(), lettras.fill(p, Language.EN, accents = false, seed = seed).ambiguous) }
+    }
+
+    @Test
+    fun `fill rejects bad input`() {
+        assertFailsWith<LettrasException> { lettras.fill(emptyList<List<String>>()) }
+        assertFailsWith<LettrasException> { lettras.fill(listOf(listOf("-", "-"), listOf("-"))) }
+    }
+
+    @Test
+    fun `fill gives identical results on the interpreter path (Android)`() {
+        val interpreted = Lettras(useCompiler = false)
+        val f = fillFixtures().first()
+        assertEquals(f.output, interpreted.fill(f.input))
+    }
 }

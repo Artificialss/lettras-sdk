@@ -31,13 +31,18 @@ internal class Engine(wasm: ByteArray, useCompiler: Boolean = true) {
         return builder.build()
     }
 
-    /** Returns the puzzle JSON, or throws [LettrasException] with the engine's message. */
-    fun generate(requestJson: String): String {
+    /** Puzzle JSON for a request, or throws [LettrasException] with the engine's message. */
+    fun generate(requestJson: String): String = call("lettras_generate", requestJson)
+
+    /** Filled-grid JSON for a request, or throws [LettrasException] with the engine's message. */
+    fun fill(requestJson: String): String = call("lettras_fill", requestJson)
+
+    private fun call(function: String, requestJson: String): String {
         val instance = instance()
         val memory = instance.memory()
         val alloc = instance.export("lettras_alloc")
         val free = instance.export("lettras_free")
-        val generate = instance.export("lettras_generate")
+        val generate = instance.export(function)
         val resultPtr = instance.export("lettras_result_ptr")
 
         val input = requestJson.toByteArray(Charsets.UTF_8)
