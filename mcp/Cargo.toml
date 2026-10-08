@@ -24,7 +24,7 @@ serde_json = "1"
 async-trait = "0.1"
 wasmi = "2"
 sha2 = "0.10"
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+sqlx = { version = "0.8", default-features = false, features = ["postgres", "runtime-tokio", "tls-rustls"] }
 
 [dev-dependencies]
 http-body-util = "0.1"

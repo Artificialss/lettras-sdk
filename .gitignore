@@ -14,3 +14,13 @@ dist/
 .vercel/
 .DS_Store
 *.log
+
+# Kotlin / Gradle
+.gradle/
+build/
+!kotlin/gradle/wrapper/gradle-wrapper.jar
+local.properties
+*.iml
+.idea/
+.kotlin/
+key.pem

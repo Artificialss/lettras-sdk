@@ -13,5 +13,5 @@ pub mod render;
 pub mod tools;
 
 pub use backend::{LocalEngine, PuzzleBackend};
-pub use limits::{Gate, MemoryStore, RedisRestStore, UsageStore};
+pub use limits::{Gate, MemoryStore, PgStore, UsageStore};
 pub use protocol::handle_message;
