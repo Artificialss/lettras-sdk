@@ -6,18 +6,46 @@
   "main": "./src/index.js",
   "types": "./src/index.d.ts",
   "exports": {
-    ".": { "types": "./src/index.d.ts", "default": "./src/index.js" }
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.js"
+    }
   },
-  "bin": { "lettras": "./bin/lettras.js" },
-  "files": ["bin", "src", "engine", "README.md", "LICENSE"],
+  "bin": {
+    "lettras": "bin/lettras.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "engine",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "test": "node --test \"test/*.test.mjs\""
   },
-  "keywords": ["word-search", "puzzle", "wordsearch", "wasm", "unicode", "i18n", "spanish", "mcp"],
-  "engines": { "node": ">=20" },
+  "keywords": [
+    "word-search",
+    "puzzle",
+    "wordsearch",
+    "wasm",
+    "unicode",
+    "i18n",
+    "spanish",
+    "mcp"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "license": "SEE LICENSE IN LICENSE",
   "homepage": "https://github.com/Artificialss/lettras-sdk#readme",
-  "repository": { "type": "git", "url": "git+https://github.com/Artificialss/lettras-sdk.git", "directory": "npm" },
-  "bugs": { "url": "https://github.com/Artificialss/lettras-sdk/issues" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Artificialss/lettras-sdk.git",
+    "directory": "npm"
+  },
+  "bugs": {
+    "url": "https://github.com/Artificialss/lettras-sdk/issues"
+  },
   "author": "Artificialss (https://artificialss.ai)"
 }
