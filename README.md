@@ -101,6 +101,26 @@ npx lettras --words sol,luna,mar --rows 8 --solution      # only the hidden word
 | `classicMode` | Strip accents in the grid (`ñ` becomes `N`). |
 | `fill` | Character for empty cells. Default `-`. |
 
+**Fill the empty cells with random letters.** `generate` leaves empty cells as `-`. Pass the result to `fill`, with the
+language and accents on or off:
+
+```js
+import { generate, fill } from 'lettras';
+
+const puzzle = generate({ words: ['gato', 'perro', 'piña'], rows: 9, cols: 12, position: 'mixed', seed: 8 });
+const done = fill(puzzle, { lang: 'es', accents: true });   // or: fill(puzzle.grid, { lang: 'es', accents: false })
+done.grid;   // the same matrix, every "-" replaced by a random letter
+```
+
+| `fill` option | Meaning |
+| --- | --- |
+| `lang` | `es` (default) `en` `pt` `fr` `de` `it`. Letters follow how common they are in that language. |
+| `accents` | `true` (default): include the language's accented/native letters (Ñ, Ç, Ã, Ä, ẞ…). `false`: plain A-Z only. |
+| `seed` | Repeatable filler. Without one, every call gives different letters. |
+| `words` | The hidden words. Added automatically when you pass the puzzle; the filler never creates an extra copy of one. |
+
+On the CLI: `lettras --words gato,piña --rows 9 --random --accents off`.
+
 **Result:** `grid`, `placements` (`word`, start `r`/`c`, step `dr`/`dc`, `length`), `words` (placed), `unplaced`
 (words that did not fit, never dropped silently), `rejected` (with reasons), `seed`, `engineVersion`.
 TypeScript types are included. Full notes: [`npm/README.md`](npm/README.md).
@@ -117,6 +137,9 @@ val puzzle = lettras.generate(
 puzzle.grid        // List<List<String>>, one letter per cell
 puzzle.placements  // where each word is hidden
 puzzle.render()    // text view
+
+val done = lettras.fill(puzzle, lang = Language.ES, accents = true)   // empty cells become random letters
+done.grid
 ```
 
 The engine is the same WebAssembly binary the MCP server uses, run by [Chicory](https://github.com/dylibso/chicory)
@@ -127,7 +150,7 @@ and Android details: [`kotlin/README.md`](kotlin/README.md).
 ## MCP server
 
 An [MCP](https://modelcontextprotocol.io) server that lets an AI assistant create puzzles for you. Ask for
-*"a 12×12 sopa de letras about animals, mixed directions"* and it calls the `generate_word_search` tool.
+*"a 12×12 sopa de letras about animals, mixed directions, with random letters"* and it calls `generate_word_search`, then `fill_word_search`.
 
 - **Transport:** streamable HTTP, `POST /mcp` (JSON-RPC). Protocol versions 2025-06-18, 2025-03-26, 2024-11-05.
 - **Runs the engine locally:** the compiled engine is embedded in the server and executed in-process. It makes no
@@ -151,12 +174,13 @@ claude mcp add --transport http lettras https://mcp.lettras.org/mcp
 | Tool | Purpose |
 | --- | --- |
 | `generate_word_search` | Create a puzzle. Arguments match the [options above](#npm-package) (`words`, `rows`, `cols`, `position`, `difficulty`, `clustering`, `seed`, `lang`, `classicMode`). Returns a readable grid and the full structured result. |
+| `fill_word_search` | Complete a puzzle: takes the grid from `generate_word_search` (empty cells `-`) and fills them with random letters in the chosen `lang`, with `accents` on or off. Pass the puzzle's `words` so the filler never creates an extra copy. Does not count against the free limit. |
 | `list_languages` | The supported languages and the native letters each adds to its grid. |
 
 Invalid arguments come back as a tool error written for the model to act on (for example
 `rows: an integer from 6 to 30 is required`).
 
-**Free tier.** Each client can create **5 puzzles per day**. After that the tool answers with
+**Free tier.** Each client can create **5 puzzles per day** (`fill_word_search` is free). After that the tool answers with
 *"Free limit reached… Visit https://lettras.org to create more."* Invalid requests and `list_languages` do not count.
 Clients are told apart by a hash of their IP address; raw addresses are never stored or logged. If the database is
 unreachable the request is allowed, so a storage outage never takes the service down.
@@ -190,6 +214,9 @@ No secret is stored in this repository. Real values belong in Vercel's project s
    then either crosses existing words or sits apart from them; `clustering` sets the odds.
 4. **Verify.** Every word must appear exactly once, otherwise the engine retries with the next seed. A word that cannot
    be placed is returned in `unplaced`.
+5. **Fill** (a separate call). Empty cells get random letters, weighted by how common each letter is in the chosen
+   language, with accents on or off. About 30% copy letters already in the grid so rare letters do not give the hidden
+   words away, and any accidental extra copy of a hidden word is repaired.
 
 Deterministic: the same input and seed give the same grid everywhere, on every platform.
 
@@ -230,10 +257,10 @@ mcp/                 MCP server (Rust): protocol, tools, free-tier gate, Vercel 
 cd npm && npm test
 
 # Kotlin library (JDK 17)
-cd kotlin && ./gradlew test         # 17 tests, including exact parity with the npm package
+cd kotlin && ./gradlew test         # 24 tests, including exact parity with the npm package
 
 # MCP server (Rust 1.80+)
-cd mcp && cargo test --release      # 16 tests, including exact parity with the npm package
+cd mcp && cargo test --release      # 22 tests, including exact parity with the npm package
 # counter against a real Postgres (optional):
 #   TEST_DATABASE_URL=postgres://... cargo test --release --test pg -- --ignored
 ```

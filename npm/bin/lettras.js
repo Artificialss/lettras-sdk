@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 // lettras --words sol,luna,mar --rows 8 --cols 8 [--position horizontal|vertical|mixed] [--seed 7]
-//         [--difficulty 1-4] [--clustering 0-1] [--lang es] [--classic] [--fill -] [--json] [--solution]
+//         [--difficulty 1-4] [--clustering 0-1] [--lang es] [--classic] [--fill -] [--random] [--accents on|off]
+//         [--json] [--solution]
 // or:     echo '{"words":["sol"],"rows":6,"cols":6}' | lettras --stdin
 import { readFileSync } from 'node:fs';
 import { generate, renderPuzzle } from '../engine/index.js';
+import { fill } from '../src/index.js';
 
 const HELP = `lettras: word-search generator
 
@@ -18,12 +20,14 @@ const HELP = `lettras: word-search generator
   --lang xx            es en pt fr de it
   --classic            strip accents in the grid
   --fill C             empty-cell character (default -)
+  --random             fill the empty cells with random letters
+  --accents on|off     with --random: use the language's accented letters (default on; off with --classic)
   --json               print the JSON result
   --solution           show only the hidden words
   --stdin              read the JSON input from stdin`;
 
 function parse(argv) {
-  const flags = new Set(['classic', 'json', 'solution', 'stdin', 'help']);
+  const flags = new Set(['classic', 'json', 'solution', 'stdin', 'help', 'random']);
   const opts = {};
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -57,9 +61,16 @@ function main() {
     if (o.classic) input.classicMode = true;
     if (o.fill) input.fill = o.fill;
   }
-  const outJson = generate(JSON.stringify(input));
+  let outJson = generate(JSON.stringify(input));
+  let out = JSON.parse(outJson);
+  if (o.random) {
+    if (o.accents !== undefined && !['on', 'off'].includes(o.accents)) throw new Error('--accents must be on or off');
+    const accents = o.accents ? o.accents === 'on' : !input.classicMode;
+    const filled = fill(out, { lang: input.lang, accents, seed: input.seed });
+    out = { ...out, grid: filled.grid };
+    outJson = JSON.stringify(out);
+  }
   if (o.json) return console.log(outJson);
-  const out = JSON.parse(outJson);
   if (o.solution) {
     const hidden = new Set(out.placements.flatMap((p) => Array.from({ length: p.length }, (_, i) => `${p.r + p.dr * i},${p.c + p.dc * i}`)));
     return console.log(out.grid.map((row, r) => row.map((ch, c) => (hidden.has(`${r},${c}`) ? ch : '·')).join(' ')).join('\n'));

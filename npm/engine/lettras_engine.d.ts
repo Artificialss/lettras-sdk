@@ -15,6 +15,21 @@ export interface GenerateInput {
     fill?: string;
 }
 export interface Placement { word: string; r: number; c: number; dr: number; dc: number; length: number }
+export interface FillInput {
+    grid: string[][];
+    lang?: string;
+    accents?: boolean;
+    seed?: number;
+    empty?: string;
+    words?: string[];
+}
+export interface FillOutput {
+    grid: string[][];
+    filled: number;
+    seed: number;
+    ambiguous: string[];
+    engineVersion: string;
+}
 export interface GenerateOutput {
     grid: string[][];
     placements: Placement[];
@@ -26,6 +41,11 @@ export interface GenerateOutput {
 }
 
 
+
+/**
+ * `fill(inputJson) -> outputJson`: random letters for the empty cells of a grid. Throws on invalid input.
+ */
+export function fill(input_json: string): string;
 
 /**
  * `generate(inputJson) -> outputJson`. Throws on invalid input.
@@ -41,6 +61,7 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
+    readonly fill: (a: number, b: number, c: number) => void;
     readonly generate: (a: number, b: number, c: number) => void;
     readonly renderPuzzle: (a: number, b: number, c: number) => void;
     readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
