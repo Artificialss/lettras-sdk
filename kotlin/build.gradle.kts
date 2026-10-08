@@ -3,7 +3,8 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     kotlin("jvm") version "2.4.0"
     kotlin("plugin.serialization") version "2.4.0"
-    `maven-publish`
+    id("org.jetbrains.dokka") version "2.2.0"
+    id("com.vanniktech.maven.publish") version "0.37.0"
 }
 
 group = "org.lettras"
@@ -30,7 +31,6 @@ kotlin {
 }
 
 java {
-    withSourcesJar()
     sourceCompatibility = JavaVersion.VERSION_11
     targetCompatibility = JavaVersion.VERSION_11
 }
@@ -43,21 +43,42 @@ tasks.test {
     testLogging { events("passed", "failed", "skipped"); showStandardStreams = false }
 }
 
-publishing {
-    publications {
-        create<MavenPublication>("lettras") {
-            from(components["java"])
-            pom {
-                name.set("Lettras")
-                description.set("Word-search generator for es, en, pt, fr, de and it with native accented letters.")
-                url.set("https://github.com/Artificialss/lettras-sdk")
-                licenses {
-                    license {
-                        name.set("MIT (code); the bundled engine binary is proprietary, see LICENSE-ENGINE")
-                        url.set("https://github.com/Artificialss/lettras-sdk/blob/main/LICENSE")
-                    }
-                }
+// Maven Central (Central Portal). Uploading is manual-release: the bundle waits in the portal until you press Publish.
+// Credentials and the signing key come from environment variables, never from this file; see ../docs/MAVEN_CENTRAL.md.
+mavenPublishing {
+    publishToMavenCentral(automaticRelease = false)
+    if (providers.gradleProperty("signingInMemoryKey").isPresent) signAllPublications()
+
+    coordinates("org.lettras", "lettras", version.toString())
+
+    pom {
+        name.set("Lettras")
+        description.set("Word-search generator for es, en, pt, fr, de and it with native accented letters. Runs locally on the JVM and Android.")
+        inceptionYear.set("2026")
+        url.set("https://github.com/Artificialss/lettras-sdk")
+        licenses {
+            license {
+                name.set("MIT License (library code)")
+                url.set("https://github.com/Artificialss/lettras-sdk/blob/main/LICENSE")
+                distribution.set("repo")
             }
+            license {
+                name.set("Lettras Engine License (bundled compiled engine, proprietary)")
+                url.set("https://github.com/Artificialss/lettras-sdk/blob/main/kotlin/src/main/resources/org/lettras/LICENSE-ENGINE")
+                distribution.set("repo")
+            }
+        }
+        developers {
+            developer {
+                id.set("artificialss")
+                name.set("Artificialss")
+                url.set("https://artificialss.ai")
+            }
+        }
+        scm {
+            url.set("https://github.com/Artificialss/lettras-sdk")
+            connection.set("scm:git:git://github.com/Artificialss/lettras-sdk.git")
+            developerConnection.set("scm:git:ssh://git@github.com/Artificialss/lettras-sdk.git")
         }
     }
 }

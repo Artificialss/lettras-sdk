@@ -55,11 +55,20 @@ Without a `seed` every call gives different letters. `FillResult` has `grid`, `f
 
 ## Install
 
-Not published to a repository yet. Until then, build it locally:
+Maven Central coordinates (available once the first release is published; see
+[`docs/MAVEN_CENTRAL.md`](../docs/MAVEN_CENTRAL.md)):
+
+```kotlin
+dependencies {
+    implementation("org.lettras:lettras:0.2.0")
+}
+```
+
+Until then, build it locally and use it from `mavenLocal()`:
 
 ```bash
 cd kotlin
-./gradlew publishToMavenLocal      # then: implementation("org.lettras:lettras:0.1.0") with mavenLocal()
+./gradlew publishToMavenLocal      # then add mavenLocal() to your repositories
 ```
 
 Requires JDK 17 to build. The library itself targets Java 11, so it runs on Android (minSdk 26 or higher recommended)
