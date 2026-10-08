@@ -24,7 +24,7 @@ kept as one cell each, from your own code, a terminal, or an AI assistant.
 | **Lettras MCP server** | Lets Claude and other MCP clients create puzzles. Written in Rust, runs on Vercel | [`mcp/`](mcp) |
 
 > **Status: in development.** The npm package and the MCP server are built and tested. The npm package is not
-> published yet and the hosted MCP endpoint is not live yet. A documentation site is planned.
+> published yet; the hosted MCP endpoint is live. A documentation site is planned.
 
 ## Table of contents
 
@@ -112,7 +112,7 @@ An [MCP](https://modelcontextprotocol.io) server that lets an AI assistant creat
   outside calls and needs no credentials to start.
 - **Written in Rust** on Vercel's [Rust runtime](https://vercel.com/docs/functions/runtimes/rust) (axum).
 
-**Connect a client** (the hosted endpoint, `https://mcp.lettras.org/mcp`, is not live yet):
+**Connect a client** (hosted endpoint: `https://mcp.lettras.org/mcp`):
 
 ```bash
 # Claude Code
