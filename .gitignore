@@ -1,0 +1,16 @@
+# Secrets and credentials: never commit these
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.key
+service-account*.json
+
+# Build output
+node_modules/
+target/
+dist/
+.vercel/
+.DS_Store
+*.log

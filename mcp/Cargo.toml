@@ -1,0 +1,33 @@
+[package]
+name = "lettras-mcp"
+version = "0.1.0"
+edition = "2021"
+description = "MCP server for Lettras word-search generation, deployable on Vercel's Rust runtime"
+license = "MIT"
+publish = false
+
+[lib]
+name = "lettras_mcp"
+path = "src/lib.rs"
+
+[[bin]]
+name = "mcp"
+path = "api/mcp.rs"
+
+[dependencies]
+vercel_runtime = { version = "2", features = ["axum"] }
+axum = "0.8"
+tower = "0.5"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+async-trait = "0.1"
+wasmi = "2"
+sha2 = "0.10"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+
+[dev-dependencies]
+http-body-util = "0.1"
+
+[profile.release]
+strip = true

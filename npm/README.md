@@ -1,0 +1,46 @@
+# lettras
+
+Word-search generator for **Spanish, English, Portuguese, French, German and Italian**, with native accented letters
+kept as one cell each. Runs locally (WebAssembly): no network, no API key. Library and CLI.
+
+```bash
+npm install lettras
+```
+
+```js
+import { generate, render } from 'lettras';
+
+const puzzle = generate({ words: ['gato', 'perro', 'piña'], rows: 9, cols: 12, position: 'mixed', seed: 8 });
+console.log(render(puzzle));
+puzzle.grid;        // string[][], one letter per cell, '-' for empty cells
+puzzle.placements;  // where each word is hidden: start (r, c), step (dr, dc), length
+puzzle.unplaced;    // words that did not fit
+```
+
+```bash
+npx lettras --words gato,perro,piña --rows 9 --cols 12 --position mixed
+```
+
+## Options
+
+| Option | Values |
+| --- | --- |
+| `words`, `rows`, `cols` | Word list and grid size (rectangular grids are fine). |
+| `position` | `horizontal`, `vertical` or `mixed` (all 8 directions). |
+| `difficulty` | 1–4, used when `position` is not set. |
+| `clustering` | 0 words apart · 1 words crossing · default 0.5. |
+| `seed` | Same input and seed give the same grid. |
+| `lang` | `es` (default) `en` `pt` `fr` `de` `it`. |
+| `classicMode` | Strip accents in the grid. |
+| `fill` | Empty-cell character, default `-`. |
+
+CLI flags mirror these: `--words a,b,c --rows N --cols N --position P --difficulty N --clustering N --seed N --lang xx
+--classic --fill C`, plus `--json`, `--solution` and `--stdin`.
+
+`generate` throws on invalid input (for example zero rows). Words that cannot be placed are listed in `unplaced`;
+words that are refused (spaces, digits, duplicates) are listed in `rejected` with a reason.
+
+## License
+
+Wrapper, CLI and types: MIT. The compiled engine in `engine/` is proprietary: use it unmodified through this package;
+see `engine/LICENSE`. Source and issues: <https://github.com/Artificialss/lettras-sdk>.

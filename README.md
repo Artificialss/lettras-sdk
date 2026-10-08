@@ -1,0 +1,221 @@
+<div align="center">
+
+  # Lettras SDK
+
+  **Word-search puzzles in six languages, with every accent intact.**
+
+</div>
+
+<p align="center">
+  <img alt="Status" src="https://img.shields.io/badge/status-in%20development-orange.svg">
+  <img alt="Languages" src="https://img.shields.io/badge/languages-es%20·%20en%20·%20pt%20·%20fr%20·%20de%20·%20it-blue.svg">
+  <img alt="Rust" src="https://img.shields.io/badge/mcp-rust-orange.svg">
+  <img alt="MCP" src="https://img.shields.io/badge/protocol-MCP-informational.svg">
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT%20%2B%20compiled%20engine-lightgrey.svg"></a>
+</p>
+
+Developer tools for [Lettras](https://lettras.org), the free word-puzzle platform. Generate word searches from any
+word list in **Spanish, English, Portuguese, French, German and Italian**, with native letters (Ñ, Ç, Ã, Ä, ẞ, È…)
+kept as one cell each, from your own code, a terminal, or an AI assistant.
+
+| Tool | What it is | Where |
+| --- | --- | --- |
+| **`lettras` on npm** | JavaScript/TypeScript library and CLI. Runs locally, no network or API key | [`npm/`](npm) |
+| **Lettras MCP server** | Lets Claude and other MCP clients create puzzles. Written in Rust, runs on Vercel | [`mcp/`](mcp) |
+
+> **Status: in development.** The npm package and the MCP server are built and tested. The npm package is not
+> published yet and the hosted MCP endpoint is not live yet. A documentation site is planned.
+
+## Table of contents
+
+- [npm package](#npm-package)
+- [MCP server](#mcp-server)
+- [How puzzles are built](#how-puzzles-are-built)
+- [Architecture and licensing](#architecture-and-licensing)
+- [Repository layout](#repository-layout)
+- [Development](#development)
+- [License](#license)
+- [About](#about)
+
+## npm package
+
+```bash
+npm install lettras
+```
+
+```js
+import { generate, render } from 'lettras';
+
+const puzzle = generate({
+  words: ['gato', 'perro', 'piña', 'mono', 'cebra'],
+  rows: 9,
+  cols: 12,
+  position: 'mixed', // horizontal | vertical | mixed (all 8 directions)
+  seed: 8,           // same input and seed, same grid
+});
+
+console.log(render(puzzle));
+```
+
+```
+9×12  seed 8  engine 0.1.0
+
+- - - - - - - - - - - -
+- - - - - - - - - - - -
+- - - - C - - - - - - -
+- - - - - E - O N O M -
+- - A - - - B - R - - -
+O - - Ñ - - - R - - - -
+T - - - I - E - A - - -
+A - - - - P - - - - - -
+G - - - - - - - - - - -
+
+Words: gato, perro, piña, mono, cebra
+```
+
+`piña` takes four cells (the `Ñ` is one), `mono` is written right to left, and `perro` and `cebra` run on diagonals.
+The grid is plain data: `puzzle.grid` is an array of rows, each an array of one-letter strings.
+
+**CLI**
+
+```bash
+npx lettras --words gato,perro,piña --rows 9 --cols 12 --position mixed --seed 8
+npx lettras --words sol,luna,mar --rows 8 --json          # raw JSON
+npx lettras --words sol,luna,mar --rows 8 --solution      # only the hidden words
+```
+
+**Options**
+
+| Option | Values |
+| --- | --- |
+| `words` | Words to hide, in normal spelling. Accents are kept. |
+| `rows`, `cols` | Grid size. They can differ for a rectangular grid. |
+| `position` | `horizontal` (left→right), `vertical` (top→bottom), `mixed` (all 8 directions, diagonals included). |
+| `difficulty` | `1`–`4`. Sets the directions when `position` is not given. |
+| `clustering` | `0` words apart · `1` words crossing · default `0.5`. |
+| `seed` | Repeatable puzzles. |
+| `lang` | `es` (default) `en` `pt` `fr` `de` `it`. |
+| `classicMode` | Strip accents in the grid (`ñ` becomes `N`). |
+| `fill` | Character for empty cells. Default `-`. |
+
+**Result:** `grid`, `placements` (`word`, start `r`/`c`, step `dr`/`dc`, `length`), `words` (placed), `unplaced`
+(words that did not fit, never dropped silently), `rejected` (with reasons), `seed`, `engineVersion`.
+TypeScript types are included. Full notes: [`npm/README.md`](npm/README.md).
+
+## MCP server
+
+An [MCP](https://modelcontextprotocol.io) server that lets an AI assistant create puzzles for you. Ask for
+*"a 12×12 sopa de letras about animals, mixed directions"* and it calls the `generate_word_search` tool.
+
+- **Transport:** streamable HTTP, `POST /mcp` (JSON-RPC). Protocol versions 2025-06-18, 2025-03-26, 2024-11-05.
+- **Runs the engine locally:** the compiled engine is embedded in the server and executed in-process. It makes no
+  outside calls and needs no credentials to start.
+- **Written in Rust** on Vercel's [Rust runtime](https://vercel.com/docs/functions/runtimes/rust) (axum).
+
+**Connect a client** (once an endpoint is deployed, replace `<mcp-url>` with it):
+
+```bash
+# Claude Code
+claude mcp add --transport http lettras <mcp-url>/mcp
+```
+
+```json
+// Claude Desktop, Cursor and other clients that take a remote server URL
+{ "mcpServers": { "lettras": { "url": "<mcp-url>/mcp" } } }
+```
+
+**Tools**
+
+| Tool | Purpose |
+| --- | --- |
+| `generate_word_search` | Create a puzzle. Arguments match the [options above](#npm-package) (`words`, `rows`, `cols`, `position`, `difficulty`, `clustering`, `seed`, `lang`, `classicMode`). Returns a readable grid and the full structured result. |
+| `list_languages` | The supported languages and the native letters each adds to its grid. |
+
+Invalid arguments come back as a tool error written for the model to act on (for example
+`rows: an integer from 6 to 30 is required`).
+
+**Free tier.** Each client can create **5 puzzles per day**. After that the tool answers with
+*"Free limit reached… Visit https://lettras.org to create more."* Invalid requests and `list_languages` do not count.
+Clients are told apart by a hash of their IP address; raw addresses are never stored or logged.
+
+**Deploy on Vercel**
+
+1. Create a Vercel project from this repository and set **Root Directory** to `mcp`.
+2. Optional: add an Upstash Redis store from the Vercel Marketplace so the 5-puzzle counter is shared across
+   instances (it sets `KV_REST_API_URL` and `KV_REST_API_TOKEN` for you). Without it the counter lives in each
+   instance's memory and is not reliable.
+3. Optional settings, all in [`.env.example`](.env.example): `LETTRAS_FREE_LIMIT`, `LETTRAS_LIMIT_WINDOW_SECS`,
+   `LETTRAS_UPGRADE_URL`.
+4. Deploy. Every puzzle request writes one JSON line to the function logs (hashed client, count, allowed or blocked,
+   grid size, language), which you can read in Vercel Logs or forward with a log drain.
+
+No secret is stored in this repository. Real values belong in Vercel's project settings.
+
+## How puzzles are built
+
+1. **Normalize.** Each word becomes one grapheme per cell, uppercase, with `ß` → `ẞ` (a plain uppercase would give
+   `SS`). Words with spaces, digits or punctuation, duplicates, and words contained in another word are rejected and
+   reported with a reason.
+2. **Place longest first.** Every spot that fits is considered: inside the grid, on empty cells or on cells holding the
+   same letter.
+3. **Choose the spot.** The least-used direction goes first, so diagonals and reversed words really appear. Each word
+   then either crosses existing words or sits apart from them; `clustering` sets the odds.
+4. **Verify.** Every word must appear exactly once, otherwise the engine retries with the next seed. A word that cannot
+   be placed is returned in `unplaced`.
+
+Deterministic: the same input and seed give the same grid everywhere, on every platform.
+
+## Architecture and licensing
+
+```
+   Lettras engine (Rust, proprietary source, private repository)
+              │  compiled, stripped, size-optimised
+      ┌───────┴────────────────────┐
+      ▼                            ▼
+ npm/engine/                  mcp/engine/
+ WebAssembly + loader         WebAssembly (C ABI)
+ used by the npm package      embedded in the MCP server, run by wasmi
+```
+
+This repository contains the **wrappers, CLI, MCP server, tests and documentation**. The puzzle engine itself is
+developed in a private repository and ships here only as compiled WebAssembly in `npm/engine/` and `mcp/engine/`.
+Both copies are produced by the same build and are checked against each other: the MCP server's tests assert that it
+returns exactly the same grids as the npm package for the same input.
+
+## Repository layout
+
+```
+npm/                 the `lettras` package: library, CLI, types, tests
+  engine/            compiled engine (proprietary, see engine/LICENSE)
+mcp/                 MCP server (Rust): protocol, tools, free-tier gate, Vercel entry point
+  engine/            compiled engine (proprietary, see engine/LICENSE)
+.env.example         every optional setting, with no values
+```
+
+## Development
+
+```bash
+# npm package
+cd npm && npm test
+
+# MCP server (Rust 1.80+)
+cd mcp && cargo test --release      # 16 tests, including exact parity with the npm package
+```
+
+The compiled engine is refreshed from the private repository by its maintainers; pull requests that change
+`engine/` cannot be accepted. Issues and suggestions about the wrappers, the MCP server or the docs are welcome.
+
+## License
+
+The code in this repository is released under the [MIT License](LICENSE), **except** the compiled engine in
+`npm/engine/` and `mcp/engine/`, which is proprietary and covered by its own license (`engine/LICENSE`): you may use it
+unmodified, through this package or server, in your own products, including commercial ones, but you may not extract,
+redistribute, modify or reverse-engineer it.
+
+## About
+
+Lettras is built by **[Artificialss](https://artificialss.ai)**.
+
+---
+
+<p align="center">Built by <a href="https://artificialss.ai">Artificialss</a></p>
