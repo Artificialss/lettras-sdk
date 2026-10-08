@@ -7,7 +7,7 @@ plugins {
     id("com.vanniktech.maven.publish") version "0.37.0"
 }
 
-group = "org.lettras"
+group = "org.artificialss"
 version = "0.2.0"
 
 dependencies {
@@ -49,7 +49,7 @@ mavenPublishing {
     publishToMavenCentral(automaticRelease = false)
     if (providers.gradleProperty("signingInMemoryKey").isPresent) signAllPublications()
 
-    coordinates("org.lettras", "lettras", version.toString())
+    coordinates("org.artificialss", "lettras", version.toString())
 
     pom {
         name.set("Lettras")
