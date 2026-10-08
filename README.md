@@ -21,14 +21,17 @@ kept as one cell each, from your own code, a terminal, or an AI assistant.
 | Tool | What it is | Where |
 | --- | --- | --- |
 | **`lettras` on npm** | JavaScript/TypeScript library and CLI. Runs locally, no network or API key | [`npm/`](npm) |
+| **`lettras` for Kotlin** | Kotlin library for the JVM and Android. Same engine, runs locally | [`kotlin/`](kotlin) |
 | **Lettras MCP server** | Lets Claude and other MCP clients create puzzles. Written in Rust, runs on Vercel | [`mcp/`](mcp) |
 
-> **Status: in development.** The npm package and the MCP server are built and tested. The npm package is not
-> published yet; the hosted MCP endpoint is live. A documentation site is planned.
+> **Status: in development.** The npm package, the Kotlin library and the MCP server are built and tested. The npm
+> package and the Kotlin library are not published yet; the hosted MCP endpoint is live. A documentation site is
+> planned.
 
 ## Table of contents
 
 - [npm package](#npm-package)
+- [Kotlin library](#kotlin-library)
 - [MCP server](#mcp-server)
 - [How puzzles are built](#how-puzzles-are-built)
 - [Architecture and licensing](#architecture-and-licensing)
@@ -102,6 +105,25 @@ npx lettras --words sol,luna,mar --rows 8 --solution      # only the hidden word
 (words that did not fit, never dropped silently), `rejected` (with reasons), `seed`, `engineVersion`.
 TypeScript types are included. Full notes: [`npm/README.md`](npm/README.md).
 
+## Kotlin library
+
+For JVM and Android apps (and the mobile game). Same engine, same results, no network.
+
+```kotlin
+val lettras = Lettras()   // create once, reuse
+val puzzle = lettras.generate(
+    PuzzleRequest(words = listOf("gato", "perro", "piña"), rows = 9, cols = 12, position = Position.MIXED, seed = 8),
+)
+puzzle.grid        // List<List<String>>, one letter per cell
+puzzle.placements  // where each word is hidden
+puzzle.render()    // text view
+```
+
+The engine is the same WebAssembly binary the MCP server uses, run by [Chicory](https://github.com/dylibso/chicory)
+(pure Java, no native libraries to build per CPU). On the JVM it is compiled to bytecode; on Android it uses the
+interpreter. The tests check it returns exactly the grids the npm package returns. Install notes, API, performance
+and Android details: [`kotlin/README.md`](kotlin/README.md).
+
 ## MCP server
 
 An [MCP](https://modelcontextprotocol.io) server that lets an AI assistant create puzzles for you. Ask for
@@ -174,23 +196,26 @@ Deterministic: the same input and seed give the same grid everywhere, on every p
 ```
    Lettras engine (Rust, proprietary source, private repository)
               │  compiled, stripped, size-optimised
-      ┌───────┴────────────────────┐
-      ▼                            ▼
- npm/engine/                  mcp/engine/
- WebAssembly + loader         WebAssembly (C ABI)
- used by the npm package      embedded in the MCP server, run by wasmi
+      ┌───────┴──────────────────────────────┐
+      ▼                                      ▼
+ npm/engine/                       mcp/engine/ (and kotlin/ resources)
+ WebAssembly + loader              WebAssembly (C ABI)
+ used by the npm package           MCP server (wasmi), Kotlin library (Chicory)
 ```
 
 This repository contains the **wrappers, CLI, MCP server, tests and documentation**. The puzzle engine itself is
-developed in a private repository and ships here only as compiled WebAssembly in `npm/engine/` and `mcp/engine/`.
-Both copies are produced by the same build and are checked against each other: the MCP server's tests assert that it
-returns exactly the same grids as the npm package for the same input.
+developed in a private repository and ships here only as compiled WebAssembly in `npm/engine/`, `mcp/engine/` and
+`kotlin/src/main/resources/`.
+All copies come from the same build and are checked against each other: the MCP server's and the Kotlin library's
+tests assert that they return exactly the same grids as the npm package for the same input.
 
 ## Repository layout
 
 ```
 npm/                 the `lettras` package: library, CLI, types, tests
   engine/            compiled engine (proprietary, see engine/LICENSE)
+kotlin/              Kotlin library (JVM and Android): API, Chicory host, tests
+  src/main/resources compiled engine (proprietary, see LICENSE-ENGINE)
 mcp/                 MCP server (Rust): protocol, tools, free-tier gate, Vercel entry point
   engine/            compiled engine (proprietary, see engine/LICENSE)
 .env.example         every optional setting, with no values
@@ -202,6 +227,9 @@ mcp/                 MCP server (Rust): protocol, tools, free-tier gate, Vercel 
 # npm package
 cd npm && npm test
 
+# Kotlin library (JDK 17)
+cd kotlin && ./gradlew test         # 17 tests, including exact parity with the npm package
+
 # MCP server (Rust 1.80+)
 cd mcp && cargo test --release      # 16 tests, including exact parity with the npm package
 ```
@@ -212,7 +240,7 @@ The compiled engine is refreshed from the private repository by its maintainers;
 ## License
 
 The code in this repository is released under the [MIT License](LICENSE), **except** the compiled engine in
-`npm/engine/` and `mcp/engine/`, which is proprietary and covered by its own license (`engine/LICENSE`): you may use it
+`npm/engine/`, `mcp/engine/` and `kotlin/src/main/resources/org/lettras/`, which is proprietary and covered by its own license (`engine/LICENSE`): you may use it
 unmodified, through this package or server, in your own products, including commercial ones, but you may not extract,
 redistribute, modify or reverse-engineer it.
 
