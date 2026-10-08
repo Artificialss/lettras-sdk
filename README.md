@@ -158,14 +158,16 @@ Invalid arguments come back as a tool error written for the model to act on (for
 
 **Free tier.** Each client can create **5 puzzles per day**. After that the tool answers with
 *"Free limit reached… Visit https://lettras.org to create more."* Invalid requests and `list_languages` do not count.
-Clients are told apart by a hash of their IP address; raw addresses are never stored or logged.
+Clients are told apart by a hash of their IP address; raw addresses are never stored or logged. If the database is
+unreachable the request is allowed, so a storage outage never takes the service down.
 
 **Deploy on Vercel**
 
 1. Create a Vercel project from this repository and set **Root Directory** to `mcp`.
-2. Optional: add an Upstash Redis store from the Vercel Marketplace so the 5-puzzle counter is shared across
-   instances (it sets `KV_REST_API_URL` and `KV_REST_API_TOKEN` for you). Without it the counter lives in each
-   instance's memory and is not reliable.
+2. Optional but recommended: a Postgres database so the 5-puzzle counter is shared across instances (without it the
+   counter lives in each instance's memory and is not reliable). Create a [Neon](https://neon.tech) project, copy its
+   **pooled** connection string into the project's environment variables as `DATABASE_URL` (mark it sensitive). The
+   server creates its own `mcp_usage` table on first use; it stores a hash, a count and a timestamp per client.
 3. Optional settings, all in [`.env.example`](.env.example): `LETTRAS_FREE_LIMIT`, `LETTRAS_LIMIT_WINDOW_SECS`,
    `LETTRAS_UPGRADE_URL`.
 4. Optional: add your own domain under the project's Settings → Domains (ours is `mcp.lettras.org`, a `CNAME` named `mcp` pointing to `cname.vercel-dns.com`; do not change the domain's nameservers).
@@ -232,6 +234,8 @@ cd kotlin && ./gradlew test         # 17 tests, including exact parity with the 
 
 # MCP server (Rust 1.80+)
 cd mcp && cargo test --release      # 16 tests, including exact parity with the npm package
+# counter against a real Postgres (optional):
+#   TEST_DATABASE_URL=postgres://... cargo test --release --test pg -- --ignored
 ```
 
 The compiled engine is refreshed from the private repository by its maintainers; pull requests that change

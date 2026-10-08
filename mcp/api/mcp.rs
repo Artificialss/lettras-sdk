@@ -4,12 +4,12 @@
 //! - `LETTRAS_FREE_LIMIT`        puzzles per client per window (default 5)
 //! - `LETTRAS_LIMIT_WINDOW_SECS` window length in seconds, 0 = never resets (default 86400)
 //! - `LETTRAS_UPGRADE_URL`       page shown when the limit is reached (default https://lettras.org)
-//! - `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` (or `KV_REST_API_URL` / `KV_REST_API_TOKEN`)
-//!   shared counter store. Without it the counter is per-instance memory and NOT reliable on serverless.
+//! - `DATABASE_URL`              Postgres connection string (Neon: use the pooled one) for the shared counter.
+//!   Without it the counter is per-instance memory and NOT reliable on serverless.
 use std::sync::Arc;
 
 use lettras_mcp::http::{router, AppState};
-use lettras_mcp::{Gate, LocalEngine, MemoryStore, RedisRestStore, UsageStore};
+use lettras_mcp::{Gate, LocalEngine, MemoryStore, PgStore, UsageStore};
 use tower::ServiceBuilder;
 use vercel_runtime::axum::VercelLayer;
 use vercel_runtime::{run, Error};
@@ -22,8 +22,8 @@ fn env_u64(name: &str, default: u64) -> u64 {
 async fn main() -> Result<(), Error> {
     let backend = LocalEngine::new().map_err(|e| Error::from(e.as_str()))?;
 
-    let store: Arc<dyn UsageStore> = match RedisRestStore::from_env() {
-        Some(redis) => Arc::new(redis),
+    let store: Arc<dyn UsageStore> = match PgStore::from_env() {
+        Some(pg) => Arc::new(pg.map_err(|e| Error::from(e.as_str()))?),
         None => Arc::new(MemoryStore::default()),
     };
     let gate = Gate::new(

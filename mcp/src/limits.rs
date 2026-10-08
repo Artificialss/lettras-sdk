@@ -1,15 +1,16 @@
 //! Free-tier gate: a client may create a few puzzles, then gets a pointer to the Lettras page.
 //!
 //! Vercel functions are stateless, so the counter lives in a [`UsageStore`]. Production uses
-//! [`RedisRestStore`] (Upstash Redis over its REST API); [`MemoryStore`] serves tests and local runs
-//! and is only per-instance. Clients are identified by a hash of their IP; raw IPs are never stored.
+//! [`PgStore`] (any Postgres, e.g. Neon); [`MemoryStore`] serves tests and local runs and is only
+//! per-instance. Clients are identified by a hash of their IP; raw IPs are never stored.
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use async_trait::async_trait;
-use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
+use sqlx::postgres::{PgPool, PgPoolOptions};
+use tokio::sync::OnceCell;
 
 /// Increments a counter and returns its new value. The counter expires after `window_secs` (0 = never).
 #[async_trait]
@@ -86,48 +87,76 @@ impl UsageStore for MemoryStore {
     }
 }
 
-/// Upstash Redis through its REST API (what the Vercel Marketplace integration provisions).
-pub struct RedisRestStore {
-    client: reqwest::Client,
-    url: String,
-    token: String,
+/// Counters in Postgres (Neon works well: the pooled connection string suits serverless).
+///
+/// One row per client id: `key` (hash), `count`, `window_start`. The table is created on first use. A hit
+/// inside the window adds one; the first hit after the window expires starts a new window at 1. All of it is a
+/// single atomic upsert, so concurrent requests cannot lose counts.
+pub struct PgStore {
+    pool: PgPool,
+    ready: OnceCell<()>,
 }
 
-impl RedisRestStore {
-    pub fn new(url: impl Into<String>, token: impl Into<String>) -> Self {
-        Self { client: reqwest::Client::new(), url: url.into().trim_end_matches('/').to_string(), token: token.into() }
+const CREATE_TABLE: &str = "CREATE TABLE IF NOT EXISTS mcp_usage (
+    key          text PRIMARY KEY,
+    count        bigint NOT NULL,
+    window_start timestamptz NOT NULL DEFAULT now()
+)";
+
+const HIT: &str = "INSERT INTO mcp_usage (key, count, window_start) VALUES ($1, 1, now())
+ON CONFLICT (key) DO UPDATE SET
+    count = CASE WHEN $2 > 0 AND mcp_usage.window_start < now() - make_interval(secs => $2)
+                 THEN 1 ELSE mcp_usage.count + 1 END,
+    window_start = CASE WHEN $2 > 0 AND mcp_usage.window_start < now() - make_interval(secs => $2)
+                        THEN now() ELSE mcp_usage.window_start END
+RETURNING count";
+
+impl PgStore {
+    /// Connects lazily, so a slow or sleeping database never blocks the function from starting.
+    pub fn connect(database_url: &str) -> Result<Self, String> {
+        let pool = PgPoolOptions::new()
+            .max_connections(2)
+            .acquire_timeout(Duration::from_secs(5))
+            .connect_lazy(database_url)
+            .map_err(|_| "DATABASE_URL is not a valid Postgres connection string".to_string())?;
+        Ok(Self { pool, ready: OnceCell::new() })
     }
 
-    /// Reads `UPSTASH_REDIS_REST_URL`/`_TOKEN`, or the `KV_REST_API_URL`/`_TOKEN` names the Marketplace sets.
-    pub fn from_env() -> Option<Self> {
-        let get = |a: &str, b: &str| std::env::var(a).or_else(|_| std::env::var(b)).ok().filter(|v| !v.is_empty());
-        Some(Self::new(
-            get("UPSTASH_REDIS_REST_URL", "KV_REST_API_URL")?,
-            get("UPSTASH_REDIS_REST_TOKEN", "KV_REST_API_TOKEN")?,
-        ))
+    /// Reads `DATABASE_URL` (what the Neon integration sets). `None` if it is missing or empty.
+    pub fn from_env() -> Option<Result<Self, String>> {
+        std::env::var("DATABASE_URL").ok().filter(|v| !v.is_empty()).map(|url| Self::connect(&url))
+    }
+
+    /// Creates the table once per process. Several instances can start at the same moment, and Postgres
+    /// can throw a duplicate-key error when `CREATE TABLE IF NOT EXISTS` runs concurrently, so the
+    /// creation is serialised with a transaction-scoped advisory lock.
+    async fn ensure_table(&self) -> Result<(), String> {
+        self.ready
+            .get_or_try_init(|| async {
+                let mut tx = self.pool.begin().await.map_err(|e| e.to_string())?;
+                sqlx::query("SELECT pg_advisory_xact_lock(7461237)").execute(&mut *tx).await.map_err(|e| e.to_string())?;
+                sqlx::query(CREATE_TABLE).execute(&mut *tx).await.map_err(|e| e.to_string())?;
+                tx.commit().await.map_err(|e| e.to_string())
+            })
+            .await
+            .map(|_| ())
     }
 }
 
 #[async_trait]
-impl UsageStore for RedisRestStore {
+impl UsageStore for PgStore {
     async fn incr(&self, key: &str, window_secs: u64) -> Result<u64, String> {
-        let mut commands = vec![json!(["INCR", key])];
-        if window_secs > 0 {
-            // NX: only the first hit starts the window.
-            commands.push(json!(["EXPIRE", key, window_secs.to_string(), "NX"]));
-        }
-        let res = self
-            .client
-            .post(format!("{}/pipeline", self.url))
-            .bearer_auth(&self.token)
-            .json(&commands)
-            .send()
+        self.ensure_table().await.map_err(|_| "usage store unavailable".to_string())?;
+        let count: i64 = sqlx::query_scalar(HIT)
+            .bind(key)
+            .bind(window_secs as f64)
+            .fetch_one(&self.pool)
             .await
-            .map_err(|_| "usage store unreachable".to_string())?;
-        if !res.status().is_success() {
-            return Err(format!("usage store returned {}", res.status()));
+            .map_err(|_| "usage store unavailable".to_string())?;
+        // Housekeeping: now and then drop counters whose window ended long ago.
+        if count == 1 && key.len() % 7 == 0 {
+            let _ = sqlx::query("DELETE FROM mcp_usage WHERE window_start < now() - interval '14 days'").execute(&self.pool).await;
         }
-        let body: Value = res.json().await.map_err(|_| "usage store sent invalid JSON".to_string())?;
-        body[0]["result"].as_u64().ok_or_else(|| "usage store sent an unexpected reply".to_string())
+        u64::try_from(count).map_err(|_| "usage store sent a negative count".to_string())
     }
 }
