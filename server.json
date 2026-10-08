@@ -1,0 +1,18 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "org.lettras/word-search",
+  "title": "Lettras word search",
+  "description": "Create word-search puzzles in 6 languages (es, en, pt, fr, de, it) with native accented letters.",
+  "version": "0.1.0",
+  "repository": {
+    "url": "https://github.com/Artificialss/lettras-sdk",
+    "source": "github",
+    "subfolder": "mcp"
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.lettras.org/mcp"
+    }
+  ]
+}

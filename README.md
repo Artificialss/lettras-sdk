@@ -150,6 +150,9 @@ Clients are told apart by a hash of their IP address; raw addresses are never st
 5. Deploy. Every puzzle request writes one JSON line to the function logs (hashed client, count, allowed or blocked,
    grid size, language), which you can read in Vercel Logs or forward with a log drain.
 
+The server is described for MCP registries in [`server.json`](server.json); publishing steps are in
+[`docs/REGISTRY.md`](docs/REGISTRY.md).
+
 No secret is stored in this repository. Real values belong in Vercel's project settings.
 
 ## How puzzles are built
