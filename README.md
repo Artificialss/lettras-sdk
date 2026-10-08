@@ -112,16 +112,16 @@ An [MCP](https://modelcontextprotocol.io) server that lets an AI assistant creat
   outside calls and needs no credentials to start.
 - **Written in Rust** on Vercel's [Rust runtime](https://vercel.com/docs/functions/runtimes/rust) (axum).
 
-**Connect a client** (once an endpoint is deployed, replace `<mcp-url>` with it):
+**Connect a client** (the hosted endpoint, `https://mcp.lettras.org/mcp`, is not live yet):
 
 ```bash
 # Claude Code
-claude mcp add --transport http lettras <mcp-url>/mcp
+claude mcp add --transport http lettras https://mcp.lettras.org/mcp
 ```
 
 ```json
 // Claude Desktop, Cursor and other clients that take a remote server URL
-{ "mcpServers": { "lettras": { "url": "<mcp-url>/mcp" } } }
+{ "mcpServers": { "lettras": { "url": "https://mcp.lettras.org/mcp" } } }
 ```
 
 **Tools**
@@ -146,7 +146,8 @@ Clients are told apart by a hash of their IP address; raw addresses are never st
    instance's memory and is not reliable.
 3. Optional settings, all in [`.env.example`](.env.example): `LETTRAS_FREE_LIMIT`, `LETTRAS_LIMIT_WINDOW_SECS`,
    `LETTRAS_UPGRADE_URL`.
-4. Deploy. Every puzzle request writes one JSON line to the function logs (hashed client, count, allowed or blocked,
+4. Optional: add your own domain under the project's Settings → Domains (ours is `mcp.lettras.org`, a `CNAME` named `mcp` pointing to `cname.vercel-dns.com`; do not change the domain's nameservers).
+5. Deploy. Every puzzle request writes one JSON line to the function logs (hashed client, count, allowed or blocked,
    grid size, language), which you can read in Vercel Logs or forward with a log drain.
 
 No secret is stored in this repository. Real values belong in Vercel's project settings.
