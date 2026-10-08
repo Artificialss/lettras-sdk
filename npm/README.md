@@ -17,8 +17,16 @@ puzzle.placements;  // where each word is hidden: start (r, c), step (dr, dc), l
 puzzle.unplaced;    // words that did not fit
 ```
 
+```js
+import { generate, fill, render } from 'lettras';
+
+const puzzle = generate({ words: ['gato', 'perro', 'piña'], rows: 9, cols: 12, position: 'mixed', seed: 8 });
+const done = fill(puzzle, { lang: 'es', accents: true }); // random letters in the empty cells
+console.log(done.grid.map((row) => row.join(' ')).join('\n'));
+```
+
 ```bash
-npx lettras --words gato,perro,piña --rows 9 --cols 12 --position mixed
+npx lettras --words gato,perro,piña --rows 9 --cols 12 --position mixed --random --accents on
 ```
 
 ## Options
@@ -33,6 +41,10 @@ npx lettras --words gato,perro,piña --rows 9 --cols 12 --position mixed
 | `lang` | `es` (default) `en` `pt` `fr` `de` `it`. |
 | `classicMode` | Strip accents in the grid. |
 | `fill` | Empty-cell character, default `-`. |
+
+`generate` leaves empty cells as `-`. **`fill(puzzleOrGrid, { lang, accents, seed })`** completes them: letters follow the
+language's letter frequency, `accents: false` limits them to A-Z, and without a `seed` every call is different. Passing the
+puzzle (instead of a bare matrix) also protects its words from accidental extra copies. CLI: `--random` and `--accents on|off`.
 
 CLI flags mirror these: `--words a,b,c --rows N --cols N --position P --difficulty N --clustering N --seed N --lang xx
 --classic --fill C`, plus `--json`, `--solution` and `--stdin`.

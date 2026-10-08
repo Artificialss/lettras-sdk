@@ -35,7 +35,7 @@ pub async fn handle_message(msg: &Value, backend: &dyn PuzzleBackend, gate: &Gat
                     "protocolVersion": version,
                     "capabilities": { "tools": { "listChanged": false } },
                     "serverInfo": { "name": "lettras", "title": "Lettras word puzzles", "version": env!("CARGO_PKG_VERSION") },
-                    "instructions": "Use generate_word_search to build word-search puzzles in es, en, pt, fr, de or it. Accents and letters like Ñ and ẞ are kept as single cells."
+                    "instructions": "Use generate_word_search to build word-search puzzles in es, en, pt, fr, de or it, then fill_word_search to complete the empty cells with random letters (accents on or off). Accents and letters like Ñ and ẞ are kept as single cells."
                 }),
             )
         }

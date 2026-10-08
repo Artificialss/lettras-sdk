@@ -51,3 +51,59 @@ test('CLI works', () => {
   const json = JSON.parse(run('--words', 'piña', '--rows', '6', '--json'));
   assert.equal(json.unplaced.length, 0);
 });
+
+import { fill } from '../src/index.js';
+
+const animals = ['gato', 'perro', 'piña', 'corazón', 'ñandú', 'mono', 'cebra'];
+const hasEmpty = (grid) => grid.flat().includes('-');
+
+test('fill completes a puzzle: no empty cells, hidden letters untouched', () => {
+  const p = generate({ words: animals, rows: 12, cols: 12, position: 'mixed', seed: 8 });
+  assert.ok(hasEmpty(p.grid));
+  const f = fill(p, { lang: 'es', seed: 1 });
+  assert.ok(!hasEmpty(f.grid));
+  assert.equal(f.filled, p.grid.flat().filter((c) => c === '-').length);
+  p.grid.forEach((row, r) => row.forEach((cell, c) => { if (cell !== '-') assert.equal(f.grid[r][c], cell); }));
+});
+
+test('fill: same seed same filler, no seed a different filler each time', () => {
+  const p = generate({ words: animals, rows: 12, cols: 12, seed: 8 });
+  assert.deepEqual(fill(p, { seed: 5 }), fill(p, { seed: 5 }));
+  const seeds = new Set(Array.from({ length: 5 }, () => fill(p).seed));
+  assert.ok(seeds.size > 1, 'unseeded calls should pick different seeds');
+});
+
+test('fill: accents off gives plain A-Z, accents on gives native letters', () => {
+  const grid = Array.from({ length: 40 }, () => Array(40).fill('-'));
+  assert.ok(fill(grid, { lang: 'es', accents: false, seed: 3 }).grid.flat().every((c) => /^[A-Z]$/.test(c)));
+  const on = fill(grid, { lang: 'es', accents: true, seed: 3 }).grid.flat();
+  assert.ok(on.includes('Ñ'));
+  assert.ok(!fill(grid, { lang: 'en', accents: true, seed: 3 }).grid.flat().some((c) => /[^A-Z]/.test(c)), 'english never has accents');
+  assert.ok(fill(grid, { lang: 'de', accents: true, seed: 3 }).grid.flat().includes('ẞ'));
+});
+
+test('fill never adds a second copy of a hidden word', () => {
+  const p = generate({ words: ['ab', 'cd', 'ef', 'gh'], rows: 8, cols: 8, position: 'mixed', seed: 2, lang: 'en' });
+  for (let seed = 0; seed < 25; seed++) {
+    const f = fill(p, { lang: 'en', accents: false, seed });
+    assert.deepEqual(f.ambiguous, []);
+  }
+});
+
+test('fill accepts a bare matrix and an input object, and rejects bad input', () => {
+  const p = generate({ words: ['sol', 'luna'], rows: 6, cols: 6, seed: 1 });
+  assert.deepEqual(fill(p.grid, { seed: 4 }).grid, fill({ grid: p.grid, seed: 4 }).grid);
+  assert.throws(() => fill([]), /grid/);
+  assert.throws(() => fill(p.grid, { lang: 'xx' }), /lang/);
+});
+
+test('CLI --random fills the grid; --accents off keeps it plain', () => {
+  const text = run('--words', 'gato,piña', '--rows', '9', '--cols', '9', '--seed', '3', '--random', '--accents', 'off', '--json');
+  const out = JSON.parse(text);
+  assert.ok(!hasEmpty(out.grid));
+  assert.ok(out.grid.flat().filter((c) => c === 'Ñ').length === 1, 'only the Ñ of piña, no accents in the filler');
+  assert.ok(out.grid.flat().every((c) => c === 'Ñ' || /^[A-Z]$/.test(c)));
+  assert.equal(run('--words', 'gato', '--rows', '7', '--seed', '2', '--random', '--accents', 'off', '--json'),
+               run('--words', 'gato', '--rows', '7', '--seed', '2', '--random', '--accents', 'off', '--json'), 'seeded CLI output is repeatable');
+  assert.throws(() => run('--words', 'gato', '--rows', '7', '--random', '--accents', 'maybe'));
+});
