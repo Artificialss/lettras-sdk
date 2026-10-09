@@ -10,6 +10,10 @@ Maven Central release can never be changed or deleted.
 Run `cd kotlin && ./gradlew publishToMavenLocal` at any time to see exactly what would be published, in
 `~/.m2/repository/org/lettras/lettras/<version>/`.
 
+**Status:** `org.lettras.artificialss:lettras:0.2.0` is published:
+<https://central.sonatype.com/artifact/org.lettras.artificialss/lettras>. The one-time setup below is done (namespace
+`org.lettras` verified, signing key published); for the next version only the "Each release" steps are needed.
+
 ## One-time setup
 
 1. **Claim the namespace `org.lettras`.** In the [Central Portal](https://central.sonatype.com): Namespaces, Add Namespace,

@@ -55,8 +55,7 @@ Without a `seed` every call gives different letters. `FillResult` has `grid`, `f
 
 ## Install
 
-Maven Central coordinates (available once the first release is published; see
-[`docs/MAVEN_CENTRAL.md`](../docs/MAVEN_CENTRAL.md)):
+Published on [Maven Central](https://central.sonatype.com/artifact/org.lettras.artificialss/lettras):
 
 ```kotlin
 dependencies {
@@ -64,15 +63,13 @@ dependencies {
 }
 ```
 
-Until then, build it locally and use it from `mavenLocal()`:
+Make sure `mavenCentral()` is in your repositories (Android projects have it by default). The code you import is in the
+package `org.lettras`. The jar comes with sources and Dokka documentation, and every file is signed (key
+`48A6307F56EF491A`, published on `keyserver.ubuntu.com`).
 
-```bash
-cd kotlin
-./gradlew publishToMavenLocal      # then add mavenLocal() to your repositories
-```
-
-Requires JDK 17 to build. The library itself targets Java 11, so it runs on Android (minSdk 26 or higher recommended)
-and any JVM from 11.
+To work on the library itself: `cd kotlin && ./gradlew publishToMavenLocal` and add `mavenLocal()` to your repositories.
+Building requires JDK 17; the library targets Java 11, so it runs on Android (minSdk 26 or higher recommended) and any
+JVM from 11.
 
 ## API
 
