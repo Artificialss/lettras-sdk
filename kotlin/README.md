@@ -60,7 +60,7 @@ Maven Central coordinates (available once the first release is published; see
 
 ```kotlin
 dependencies {
-    implementation("org.lettras:lettras:0.2.0")
+    implementation("org.lettras.artificialss:lettras:0.2.0")
 }
 ```
 
