@@ -23,5 +23,5 @@ The latest release of each package. Releases are signed: Maven artifacts with ke
 
 ## What the hosted MCP server stores
 
-A SHA-256 hash of the caller's IP address (IPv6 collapsed to its /64), a count and a timestamp, for the free-tier limit.
-No addresses, words or puzzles are stored. See the README for details.
+A SHA-256 hash of the caller's IP address (IPv6 collapsed to its /64), a count and a timestamp, for the free-tier limit of 5
+puzzles, kept for as long as the limit lasts (forever). No addresses, words or puzzles are stored. See the README for details.

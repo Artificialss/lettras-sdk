@@ -227,16 +227,16 @@ claude mcp add --transport http lettras https://mcp.lettras.org/mcp
 Invalid arguments come back as a tool error written for the model to act on (for example
 `rows: an integer from 6 to 30 is required`).
 
-**Limits and privacy.** Each client can create **5 puzzles per day** and call `fill_word_search` **100 times per day**;
-after that the tool answers with *"Free limit reached… Visit https://lettras.org"*. Invalid requests and
-`list_languages` do not count. A client is identified by a SHA-256 hash of its IP address, with the whole IPv6 `/64`
-treated as one client so that rotating addresses does not dodge the limit. The server stores only that hash, a count and
-a timestamp (no addresses, no words, no puzzles) and deletes counters a couple of days after their window ends; the
-request log has the same hash prefix, never the address. A hash of an IP address can still count as personal data in some
-jurisdictions, so mention it in your own privacy notice if you operate your own copy. If the database is unreachable the
-request is allowed (and a `usage_store_error` line is logged), so a storage outage never takes the service down. The
-hosted endpoint is public and unauthenticated; it is meant for people and assistants, not for bulk generation, and it has
-no per-key plans yet.
+**Limits and privacy.** Each client can create **5 puzzles in total, forever** (there is no daily reset), and call
+`fill_word_search` up to 100 times; after that the tool answers with *"Free limit reached… Visit https://lettras.org"*.
+Invalid requests and `list_languages` do not count. A client is identified by a SHA-256 hash of its IP address, with the
+whole IPv6 `/64` treated as one client so that rotating addresses does not dodge the limit. Because the limit never
+resets, the server keeps one row per client indefinitely: the hash, a count and a timestamp (no addresses, no words, no
+puzzles). The request log carries the same hash prefix, never the address. A hash of an IP address can still count as
+personal data in some jurisdictions, so mention it in your own privacy notice if you operate your own copy. If the
+database is unreachable the request is allowed (and a `usage_store_error` line is logged), so a storage outage never takes
+the service down. The hosted endpoint is public and unauthenticated; it is a free trial of five puzzles, not a bulk
+service. To run your own copy with a daily limit instead, set `LETTRAS_LIMIT_WINDOW_SECS=86400`.
 
 **Deploy on Vercel**
 
@@ -246,7 +246,7 @@ no per-key plans yet.
    **pooled** connection string into the project's environment variables as `DATABASE_URL` (mark it sensitive). The
    server creates its own `mcp_usage` table on first use; it stores a hash, a count and a timestamp per client.
 3. Optional settings, all in [`.env.example`](.env.example): `LETTRAS_FREE_LIMIT`, `LETTRAS_FILL_LIMIT`,
-   `LETTRAS_LIMIT_WINDOW_SECS`, `LETTRAS_UPGRADE_URL`.
+   `LETTRAS_LIMIT_WINDOW_SECS` (0 = lifetime total, the default), `LETTRAS_UPGRADE_URL`.
 4. Optional: add your own domain under the project's Settings → Domains (ours is `mcp.lettras.org`, a `CNAME` named `mcp` pointing to `cname.vercel-dns.com`; do not change the domain's nameservers).
 5. Deploy. Every puzzle request writes one JSON line to the function logs (hashed client, count, allowed or blocked,
    grid size, language), which you can read in Vercel Logs or forward with a log drain.
@@ -314,7 +314,7 @@ cd npm && npm test
 cd kotlin && ./gradlew test         # 26 tests, including exact parity with the npm package
 
 # MCP server (Rust 1.80+)
-cd mcp && cargo test --release      # 28 tests, including exact parity with the npm package
+cd mcp && cargo test --release      # 30 tests, including exact parity with the npm package
 # counter against a real Postgres (optional):
 #   TEST_DATABASE_URL=postgres://... cargo test --release --test pg -- --ignored
 ```

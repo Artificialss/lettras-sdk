@@ -84,9 +84,19 @@ impl Gate {
         )
     }
 
+    /// How the window reads in a message: "in total" when counters never reset, otherwise the window length.
+    fn period(&self) -> String {
+        match self.window_secs {
+            0 => "in total".to_string(),
+            86_400 => "per day".to_string(),
+            n if n % 3_600 == 0 => format!("every {} hours", n / 3_600),
+            n => format!("every {n} seconds"),
+        }
+    }
+
     /// The message shown when the fill limit is reached.
     pub fn fill_blocked_message(&self) -> String {
-        format!("Fill limit reached ({} per day). Visit {} for more.", self.fill_limit, self.upgrade_url)
+        format!("Fill limit reached ({} {}). Visit {} for more.", self.fill_limit, self.period(), self.upgrade_url)
     }
 }
 

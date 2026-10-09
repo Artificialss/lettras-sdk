@@ -401,3 +401,24 @@ async fn the_engine_rejects_a_letter_as_the_empty_marker_with_a_readable_message
     assert_eq!(r["result"]["isError"], true);
     assert!(r["result"]["content"][0]["text"].as_str().unwrap().contains("empty"), "{}", r["result"]["content"][0]["text"]);
 }
+
+#[tokio::test]
+async fn with_a_zero_window_the_limit_is_a_lifetime_total() {
+    // window 0 = counters never reset: the 5 puzzles are all a client ever gets
+    let (e, g) = (engine(), Gate::new(Arc::new(MemoryStore::default()), 5, 0, "https://lettras.org"));
+    for i in 1..=5u64 {
+        assert_eq!(handle_message(&small(i), &e, &g, "198.51.100.40").await.unwrap()["result"]["isError"], false);
+    }
+    tokio::time::sleep(std::time::Duration::from_millis(1200)).await;
+    let r = handle_message(&small(6), &e, &g, "198.51.100.40").await.unwrap();
+    assert_eq!(r["result"]["isError"], true, "time passing must not give puzzles back");
+    assert!(!r["result"]["content"][0]["text"].as_str().unwrap().contains("per day"));
+}
+
+#[tokio::test]
+async fn the_fill_message_matches_the_window() {
+    let store: Arc<dyn UsageStore> = Arc::new(MemoryStore::default());
+    assert!(Gate::new(store.clone(), 5, 0, "u").with_fill_limit(7).fill_blocked_message().contains("7 in total"));
+    assert!(Gate::new(store.clone(), 5, 86_400, "u").with_fill_limit(7).fill_blocked_message().contains("7 per day"));
+    assert!(Gate::new(store, 5, 7_200, "u").with_fill_limit(7).fill_blocked_message().contains("every 2 hours"));
+}
