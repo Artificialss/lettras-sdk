@@ -43,10 +43,11 @@ async fn no_stream() -> Response {
     cors(StatusCode::METHOD_NOT_ALLOWED.into_response())
 }
 
-/// Caller address as set by the platform proxy (first hop of `x-forwarded-for`).
+/// Caller address as set by the platform proxy: `x-real-ip` when present, else the first hop of `x-forwarded-for`.
+/// (Vercel overwrites both, so a client cannot choose its own.)
 fn client_ip(headers: &HeaderMap) -> String {
     let first = |name: &str| headers.get(name).and_then(|v| v.to_str().ok()).map(|v| v.split(',').next().unwrap_or("").trim().to_string());
-    first("x-forwarded-for").or_else(|| first("x-real-ip")).filter(|v| !v.is_empty()).unwrap_or_else(|| "unknown".into())
+    first("x-real-ip").or_else(|| first("x-forwarded-for")).filter(|v| !v.is_empty()).unwrap_or_else(|| "unknown".into())
 }
 
 async fn index() -> Json<Value> {
