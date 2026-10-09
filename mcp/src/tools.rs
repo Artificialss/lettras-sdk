@@ -175,10 +175,17 @@ fn random_seed() -> u64 {
     h.finish() % (u64::from(u32::MAX) + 1)
 }
 
-async fn fill(args: &Value, backend: &dyn PuzzleBackend) -> Value {
-    // Not counted against the free puzzle limit: it only completes a puzzle that was already generated.
+async fn fill(args: &Value, backend: &dyn PuzzleBackend, gate: &Gate, client: &str) -> Value {
+    // Not counted against the free puzzle limit (it only completes a puzzle that was already generated), but it has its own,
+    // far more generous limit so it cannot be used without bound.
     if let Err(e) = validate_fill(args) {
         return error_result(e);
+    }
+    let usage = gate.hit_fill(client).await;
+    if !usage.allowed() {
+        let mut v = error_result(gate.fill_blocked_message());
+        v["structuredContent"] = json!({ "limitReached": true, "limit": usage.limit, "visit": gate.upgrade_url });
+        return v;
     }
     let mut request = args.clone();
     if request.get("seed").is_none() {
@@ -202,7 +209,7 @@ async fn fill(args: &Value, backend: &dyn PuzzleBackend) -> Value {
 pub async fn call(name: &str, args: &Value, backend: &dyn PuzzleBackend, gate: &Gate, client: &str) -> Option<Value> {
     match name {
         "generate_word_search" => Some(generate(args, backend, gate, client).await),
-        "fill_word_search" => Some(fill(args, backend).await),
+        "fill_word_search" => Some(fill(args, backend, gate, client).await),
         "list_languages" => Some(text_result(
             "es Español: Á É Í Ó Ú Ü Ñ\nen English: none\npt Português: Á Â Ã À É Ê Í Ó Ô Õ Ú Ç\nfr Français: À Â Æ Ç É È Ê Ë Î Ï Ô Œ Ù Û Ü Ÿ\nde Deutsch: Ä Ö Ü ẞ\nit Italiano: À È É Ì Ò Ù".into(),
             None,

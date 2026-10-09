@@ -10,7 +10,7 @@ Maven Central release can never be changed or deleted.
 Run `cd kotlin && ./gradlew publishToMavenLocal` at any time to see exactly what would be published, in
 `~/.m2/repository/org/lettras/lettras/<version>/`.
 
-**Status:** `org.lettras.artificialss:lettras:0.2.0` is published:
+**Status:** `org.lettras.artificialss:lettras` is published (0.2.0, and 0.2.1 as the current release):
 <https://central.sonatype.com/artifact/org.lettras.artificialss/lettras>. The one-time setup below is done (namespace
 `org.lettras` verified, signing key published); for the next version only the "Each release" steps are needed.
 
@@ -63,7 +63,7 @@ Signing is only switched on when `signingInMemoryKey` is set, so local builds an
 
 ```kotlin
 dependencies {
-    implementation("org.lettras.artificialss:lettras:0.2.0")
+    implementation("org.lettras.artificialss:lettras:0.2.1")
 }
 ```
 Gradle projects need `mavenCentral()` in their repositories (Android projects have it by default). The library brings

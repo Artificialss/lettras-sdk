@@ -107,3 +107,17 @@ test('CLI --random fills the grid; --accents off keeps it plain', () => {
                run('--words', 'gato', '--rows', '7', '--seed', '2', '--random', '--accents', 'off', '--json'), 'seeded CLI output is repeatable');
   assert.throws(() => run('--words', 'gato', '--rows', '7', '--random', '--accents', 'maybe'));
 });
+
+test('reports the real engine version', () => {
+  assert.equal(generate({ words: ['sol'], rows: 6, cols: 6 }).engineVersion, '0.2.1');
+  assert.equal(fill([['-']]).engineVersion, '0.2.1');
+});
+
+test('a letter or digit cannot be the empty marker; oversized input is rejected', () => {
+  for (const bad of ['A', '7', 'ab']) {
+    assert.throws(() => fill([['A', '-']], { empty: bad }), /empty/);
+    assert.throws(() => generate({ words: ['sol'], rows: 8, cols: 8, fill: bad }), /fill/);
+  }
+  assert.throws(() => generate({ words: ['sol'], rows: 101, cols: 8 }), /at most/);
+  assert.throws(() => generate({ words: Array(501).fill('ab'), rows: 8, cols: 8 }), /words/);
+});

@@ -62,7 +62,7 @@ console.log(render(puzzle));
 ```
 
 ```
-9×12  seed 8  engine 0.1.0
+9×12  seed 8  engine 0.2.1
 
 - - - - - - - - - - - -
 - - - - - - - - - - - -
@@ -122,6 +122,52 @@ done.grid;   // the same matrix, every "-" replaced by a random letter
 
 On the CLI: `lettras --words gato,piña --rows 9 --random --accents off`.
 
+**Example.** The same puzzle before and after `fill` (Spanish, seed 5):
+
+```js
+const puzzle = generate({ words: ['gato', 'perro', 'piña', 'mono', 'cebra'], rows: 8, cols: 10, position: 'mixed', seed: 8 });
+const done = fill(puzzle, { lang: 'es', accents: true, seed: 5 });
+```
+
+`puzzle.grid` has `-` in every empty cell; `done.grid` replaces them (58 cells here):
+
+```
+C E B R A - O - - -
+- - - - - - - T O -
+- - - - M - - R A -
+- - - O - - R - - G
+- - N - - E - - - -
+- O - - P - - - - -
+- - - - - - - - - -
+- - - - - - A Ñ I P
+```
+```
+C E B R A R O G G J
+D R A E E R C T O D
+B Ó E E M Í M R A Ñ
+T S C O N R R A E G
+T R N E A E R O E M
+I O O E P S N P A O
+O C O O A P P A U A
+I R E A A S A Ñ I P
+```
+
+With `accents: false` the filler uses plain A-Z only (the one `Ñ` left is the hidden word *piña*, which keeps its spelling):
+
+```
+C E B R A R O G G I
+D Q A E E P C T O D
+B Y E E M X M R A N
+S R C O N R R A E G
+S R N E A E R O E M
+I O O E P S N O A O
+O B O O A P O A T A
+H R E A A S A Ñ I P
+```
+
+Same grid, language, accents and `seed` always give the same filler on every platform. Without a `seed` the wrappers
+pick a random one, so every call gives different letters.
+
 **Result:** `grid`, `placements` (`word`, start `r`/`c`, step `dr`/`dc`, `length`), `words` (placed), `unplaced`
 (words that did not fit, never dropped silently), `rejected` (with reasons), `seed`, `engineVersion`.
 TypeScript types are included. Full notes: [`npm/README.md`](npm/README.md).
@@ -175,16 +221,22 @@ claude mcp add --transport http lettras https://mcp.lettras.org/mcp
 | Tool | Purpose |
 | --- | --- |
 | `generate_word_search` | Create a puzzle. Arguments match the [options above](#npm-package) (`words`, `rows`, `cols`, `position`, `difficulty`, `clustering`, `seed`, `lang`, `classicMode`). Returns a readable grid and the full structured result. |
-| `fill_word_search` | Complete a puzzle: takes the grid from `generate_word_search` (empty cells `-`) and fills them with random letters in the chosen `lang`, with `accents` on or off. Pass the puzzle's `words` so the filler never creates an extra copy. Does not count against the free limit. |
+| `fill_word_search` | Complete a puzzle: takes the grid from `generate_word_search` (empty cells `-`) and fills them with random letters in the chosen `lang`, with `accents` on or off. Pass the puzzle's `words` so the filler never creates an extra copy. Does not use up the puzzle limit; it has its own, larger one. |
 | `list_languages` | The supported languages and the native letters each adds to its grid. |
 
 Invalid arguments come back as a tool error written for the model to act on (for example
 `rows: an integer from 6 to 30 is required`).
 
-**Free tier.** Each client can create **5 puzzles per day** (`fill_word_search` is free). After that the tool answers with
-*"Free limit reached… Visit https://lettras.org to create more."* Invalid requests and `list_languages` do not count.
-Clients are told apart by a hash of their IP address; raw addresses are never stored or logged. If the database is
-unreachable the request is allowed, so a storage outage never takes the service down.
+**Limits and privacy.** Each client can create **5 puzzles per day** and call `fill_word_search` **100 times per day**;
+after that the tool answers with *"Free limit reached… Visit https://lettras.org"*. Invalid requests and
+`list_languages` do not count. A client is identified by a SHA-256 hash of its IP address, with the whole IPv6 `/64`
+treated as one client so that rotating addresses does not dodge the limit. The server stores only that hash, a count and
+a timestamp (no addresses, no words, no puzzles) and deletes counters a couple of days after their window ends; the
+request log has the same hash prefix, never the address. A hash of an IP address can still count as personal data in some
+jurisdictions, so mention it in your own privacy notice if you operate your own copy. If the database is unreachable the
+request is allowed (and a `usage_store_error` line is logged), so a storage outage never takes the service down. The
+hosted endpoint is public and unauthenticated; it is meant for people and assistants, not for bulk generation, and it has
+no per-key plans yet.
 
 **Deploy on Vercel**
 
@@ -193,8 +245,8 @@ unreachable the request is allowed, so a storage outage never takes the service 
    counter lives in each instance's memory and is not reliable). Create a [Neon](https://neon.tech) project, copy its
    **pooled** connection string into the project's environment variables as `DATABASE_URL` (mark it sensitive). The
    server creates its own `mcp_usage` table on first use; it stores a hash, a count and a timestamp per client.
-3. Optional settings, all in [`.env.example`](.env.example): `LETTRAS_FREE_LIMIT`, `LETTRAS_LIMIT_WINDOW_SECS`,
-   `LETTRAS_UPGRADE_URL`.
+3. Optional settings, all in [`.env.example`](.env.example): `LETTRAS_FREE_LIMIT`, `LETTRAS_FILL_LIMIT`,
+   `LETTRAS_LIMIT_WINDOW_SECS`, `LETTRAS_UPGRADE_URL`.
 4. Optional: add your own domain under the project's Settings → Domains (ours is `mcp.lettras.org`, a `CNAME` named `mcp` pointing to `cname.vercel-dns.com`; do not change the domain's nameservers).
 5. Deploy. Every puzzle request writes one JSON line to the function logs (hashed client, count, allowed or blocked,
    grid size, language), which you can read in Vercel Logs or forward with a log drain.
@@ -259,16 +311,23 @@ mcp/                 MCP server (Rust): protocol, tools, free-tier gate, Vercel 
 cd npm && npm test
 
 # Kotlin library (JDK 17)
-cd kotlin && ./gradlew test         # 24 tests, including exact parity with the npm package
+cd kotlin && ./gradlew test         # 26 tests, including exact parity with the npm package
 
 # MCP server (Rust 1.80+)
-cd mcp && cargo test --release      # 22 tests, including exact parity with the npm package
+cd mcp && cargo test --release      # 28 tests, including exact parity with the npm package
 # counter against a real Postgres (optional):
 #   TEST_DATABASE_URL=postgres://... cargo test --release --test pg -- --ignored
 ```
 
 The compiled engine is refreshed from the private repository by its maintainers; pull requests that change
 `engine/` cannot be accepted. Issues and suggestions about the wrappers, the MCP server or the docs are welcome.
+
+## Limits of the engine
+
+The engine accepts grids up to 100×100, 500 words of up to 100 characters and cells of up to 8 characters; the MCP server and the
+public examples use 6-30. The empty-cell marker (`fill` when generating, `empty` when filling) must be one character that is
+not a letter or digit. Anything else returns a readable error. A fuzz test in the engine's repository throws 100,000 hostile
+inputs (combining marks, emoji, right-to-left text, zero-width joiners, garbage JSON) at it with no crash.
 
 ## License
 
