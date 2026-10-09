@@ -1,7 +1,6 @@
 # Publishing the Kotlin library to Maven Central
 
-The library is `org.artificialss:lettras` (the `kotlin/` folder). The Kotlin code itself lives in the package `org.lettras`;
-the Maven group and the package do not have to match. The Gradle build is already configured with the
+The library is `org.lettras:lettras` (the `kotlin/` folder), and the Kotlin code lives in the package `org.lettras` too. The Gradle build is already configured with the
 [`com.vanniktech.maven.publish`](https://vanniktech.github.io/gradle-maven-publish-plugin/) plugin: it builds the library,
 sources and documentation jars (Dokka), the POM with licenses, developer and SCM, signs everything, and uploads to the
 Central Portal. Uploads are **manual-release**: the bundle waits in the portal until you press **Publish**, because a
@@ -12,10 +11,12 @@ Run `cd kotlin && ./gradlew publishToMavenLocal` at any time to see exactly what
 
 ## One-time setup
 
-1. **Claim the namespace `org.artificialss`.** In the [Central Portal](https://central.sonatype.com): Namespaces, Add
-   Namespace, `org.artificialss`. A namespace is a reversed domain you control, so this one is proven on `artificialss.org`:
-   the portal shows a verification key; add it as a **TXT record** on the root of `artificialss.org` (host `@`, value = that
-   key) and click Verify. (The MCP Registry name `org.lettras/word-search` is separate and was proven on `lettras.org`.)
+1. **Claim the namespace `org.lettras`.** In the [Central Portal](https://central.sonatype.com): Namespaces, Add Namespace,
+   `org.lettras`. A namespace is a reversed domain you control: `org.lettras` is proven on **`lettras.org`**. The portal shows a
+   verification key; add it as a **TXT record** on the root of `lettras.org` (host `@`, value = that key) and click Verify.
+   It sits next to the MCP Registry TXT record (`v=MCPv1; …`); several TXT records on the same name are fine. Central checks
+   the exact reversed domain, so a record on a subdomain does not count, and the namespace must be exactly `org.lettras`
+   (a longer one such as `org.lettras.sdk` would be a different request).
 2. **Create a signing key** (Central rejects unsigned artifacts):
    ```bash
    gpg --full-generate-key                      # RSA 4096 or ed25519; use a passphrase; note the KEYID
@@ -45,7 +46,7 @@ Signing is only switched on when `signingInMemoryKey` is set, so local builds an
 
 ```kotlin
 dependencies {
-    implementation("org.artificialss:lettras:0.2.0")
+    implementation("org.lettras:lettras:0.2.0")
 }
 ```
 Gradle projects need `mavenCentral()` in their repositories (Android projects have it by default). The library brings

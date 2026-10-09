@@ -55,12 +55,12 @@ Without a `seed` every call gives different letters. `FillResult` has `grid`, `f
 
 ## Install
 
-Maven Central coordinates (the code you import is in the package `org.lettras`; available once the first release is published; see
+Maven Central coordinates (available once the first release is published; see
 [`docs/MAVEN_CENTRAL.md`](../docs/MAVEN_CENTRAL.md)):
 
 ```kotlin
 dependencies {
-    implementation("org.artificialss:lettras:0.2.0")
+    implementation("org.lettras:lettras:0.2.0")
 }
 ```
 
