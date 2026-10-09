@@ -28,19 +28,30 @@ Run `cd kotlin && ./gradlew publishToMavenLocal` at any time to see exactly what
 3. **Generate a portal user token**: Central Portal, Account, Generate User Token. You get a username and a password; they
    are not your login.
 
+## Where the secrets live (never in this repository)
+
+| Secret | Where it goes |
+| --- | --- |
+| Portal user token (username and password) | `~/.gradle/gradle.properties` in your **home** folder, keys `mavenCentralUsername` and `mavenCentralPassword`, file mode 600 |
+| Signing key and its passphrase | Outside the repo (we keep them in `~/.config/lettras/`); passed to Gradle as environment variables for one command |
+
+`.gitignore` blocks key and credential file types (`*.asc`, `*.gpg`, `*.p12`, `maven-central.env`, …), and
+`scripts/check-secrets.sh` fails if a tracked or staged file looks like a secret. Run it before pushing. Note that
+`kotlin/gradle.properties` in this repo is tracked and holds only JVM settings: **never put the token in it**.
+
 ## Each release
 
-1. Bump `version` in `kotlin/build.gradle.kts` (and mention the change in the README).
-2. From a shell (never commit these values):
+1. Bump `version` in `kotlin/build.gradle.kts` (and mention the change in the README). Release from `main`.
+2. Make sure `~/.gradle/gradle.properties` has the two token lines, then run (the key is read from your files, not typed):
    ```bash
-   export ORG_GRADLE_PROJECT_mavenCentralUsername='<token username>'
-   export ORG_GRADLE_PROJECT_mavenCentralPassword='<token password>'
-   export ORG_GRADLE_PROJECT_signingInMemoryKey="$(gpg --armor --export-secret-keys KEYID)"
-   export ORG_GRADLE_PROJECT_signingInMemoryKeyPassword='<key passphrase>'
-   cd kotlin && ./gradlew publishToMavenCentral
+   cd kotlin
+   ORG_GRADLE_PROJECT_signingInMemoryKey="$(cat ~/.config/lettras/maven-signing-key.asc)" \
+   ORG_GRADLE_PROJECT_signingInMemoryKeyPassword="$(cat ~/.config/lettras/maven-signing-passphrase)" \
+   ./gradlew publishToMavenCentral
    ```
 3. Open the [Deployments page](https://central.sonatype.com/publishing/deployments). Once validation passes, check the
    contents and press **Publish**. It appears on Maven Central after a few minutes (search can lag by an hour or two).
+   A deployment that is not published yet can be dropped; a published one can never be changed or removed.
 
 Signing is only switched on when `signingInMemoryKey` is set, so local builds and tests never need the key.
 

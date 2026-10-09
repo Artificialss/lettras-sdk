@@ -24,3 +24,17 @@ local.properties
 .idea/
 .kotlin/
 key.pem
+
+# Signing keys, credentials and local settings: never commit (Maven Central tokens live in ~/.gradle/gradle.properties)
+*.asc
+*.gpg
+*.pgp
+*.p12
+*.jks
+*.kbx
+*.keystore
+.gnupg/
+gnupg/
+maven-central.env
+maven-signing-*
+signing.properties
