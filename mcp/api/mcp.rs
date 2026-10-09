@@ -2,6 +2,7 @@
 //!
 //! Optional environment variables (none are required to run):
 //! - `LETTRAS_FREE_LIMIT`        puzzles per client per window (default 5)
+//! - `LETTRAS_FILL_LIMIT`        fill_word_search calls per client per window (default 100)
 //! - `LETTRAS_LIMIT_WINDOW_SECS` window length in seconds, 0 = never resets (default 86400)
 //! - `LETTRAS_UPGRADE_URL`       page shown when the limit is reached (default https://lettras.org)
 //! - `DATABASE_URL`              Postgres connection string (Neon: use the pooled one) for the shared counter.
@@ -31,7 +32,8 @@ async fn main() -> Result<(), Error> {
         env_u64("LETTRAS_FREE_LIMIT", 5),
         env_u64("LETTRAS_LIMIT_WINDOW_SECS", 86_400),
         std::env::var("LETTRAS_UPGRADE_URL").unwrap_or_else(|_| "https://lettras.org".into()),
-    );
+    )
+    .with_fill_limit(env_u64("LETTRAS_FILL_LIMIT", 100));
 
     let app = router(AppState { backend: Arc::new(backend), gate: Arc::new(gate) });
     let service = ServiceBuilder::new().layer(VercelLayer::new()).service(app);

@@ -21,7 +21,7 @@ println(puzzle.render())
 ```
 
 ```
-9×12  seed 8  engine 0.1.0
+9×12  seed 8  engine 0.2.1
 
 - - - - - - - - - - - -
 - - - - - - - - - - - -
@@ -53,13 +53,31 @@ lettras.fill(puzzle.grid, Language.DE, accents = false, seed = 5)   // a bare ma
 Letters follow how common they are in the language (`Language.EN` never has accents, `Language.DE` can include `ẞ`).
 Without a `seed` every call gives different letters. `FillResult` has `grid`, `filled`, `seed` and `ambiguous`.
 
+Example: the same Spanish puzzle (`seed = 8`) filled with `seed = 5` and accents on gives, for the empty cells of the grid
+below, exactly the letters shown in the npm package's example, because every SDK runs the same engine:
+
+```kotlin
+val puzzle = lettras.generate(PuzzleRequest(listOf("gato", "perro", "piña", "mono", "cebra"), rows = 8, cols = 10, position = Position.MIXED, seed = 8))
+println(lettras.fill(puzzle, Language.ES, accents = true, seed = 5).render())
+```
+```
+C E B R A R O G G J
+D R A E E R C T O D
+B Ó E E M Í M R A Ñ
+T S C O N R R A E G
+T R N E A E R O E M
+I O O E P S N P A O
+O C O O A P P A U A
+I R E A A S A Ñ I P
+```
+
 ## Install
 
 Published on [Maven Central](https://central.sonatype.com/artifact/org.lettras.artificialss/lettras):
 
 ```kotlin
 dependencies {
-    implementation("org.lettras.artificialss:lettras:0.2.0")
+    implementation("org.lettras.artificialss:lettras:0.2.1")
 }
 ```
 
@@ -68,8 +86,7 @@ package `org.lettras`. The jar comes with sources and Dokka documentation, and e
 `48A6307F56EF491A`, published on `keyserver.ubuntu.com`).
 
 To work on the library itself: `cd kotlin && ./gradlew publishToMavenLocal` and add `mavenLocal()` to your repositories.
-Building requires JDK 17; the library targets Java 11, so it runs on Android (minSdk 26 or higher recommended) and any
-JVM from 11.
+Building requires JDK 17; the library targets Java 11 and runs on any JVM from 11.
 
 ## API
 
@@ -111,15 +128,20 @@ Invalid requests (for example zero rows) throw `LettrasException` with the reaso
 
 ## Performance and Android
 
+> **Android is not verified on a device yet.** The code is written for it (no native libraries, no bytecode generation on
+> Android) and the interpreter path it would use is tested on a desktop JVM, but it has not been run on a phone or
+> emulator, and Android's Java API level and desugaring requirements have not been checked. Treat Android support as
+> experimental until you have tried it in your app, and tell us what you find.
+
 The engine is WebAssembly, run by [Chicory](https://github.com/dylibso/chicory), a WebAssembly runtime written in
 pure Java. There are no native libraries, so there is nothing to build per CPU architecture.
 
 | Where | How it runs | Measured (desktop JVM) |
 | --- | --- | --- |
 | JVM | Compiled to bytecode on first use | 30×30 grid with 60 words in about 3 s; a typical 10×10 puzzle in milliseconds |
-| Android | Interpreter (ART cannot load generated JVM bytecode) | A typical 10×10 puzzle with 8 words in about 0.35 s on a desktop JVM; expect a few times slower on a phone |
+| Android | Interpreter (ART cannot load generated JVM bytecode) | A typical 10×10 puzzle with 8 words in about 0.35 s on a desktop JVM (a phone is unmeasured and will be slower) |
 
-The first call on each thread pays a one-time setup cost. Create one `Lettras` and reuse it. On Android, call it off
+The first call on each thread pays a one-time setup cost, and each thread keeps its own engine instance (a few MB), so use a bounded thread pool. Create one `Lettras` and reuse it. On Android, call it off
 the main thread.
 
 For the heaviest use (huge batches, real-time generation in a game loop), a native build of the engine per platform is
@@ -128,7 +150,7 @@ the next step; the API above stays the same.
 ## Tests
 
 ```bash
-cd kotlin && ./gradlew test      # 24 tests
+cd kotlin && ./gradlew test      # 26 tests
 ```
 
 Besides behaviour tests (positions, German `ẞ`, classic mode, rejected and unplaced words, thread safety, a 30×30

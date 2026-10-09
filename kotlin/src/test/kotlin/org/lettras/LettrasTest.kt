@@ -110,7 +110,7 @@ class LettrasTest {
     @Test
     fun `render matches the CLI format and solution hides the rest`() {
         val p = lettras.generate(PuzzleRequest(listOf("sol", "río"), rows = 6, cols = 6, position = Position.MIXED, seed = 3))
-        val expected = "6×6  seed 3  engine 0.1.0\n\nS - - - - -\n- O Í R - -\n- - L - - -\n- - - - - -\n- - - - - -\n- - - - - -\n\nWords: sol, río"
+        val expected = "6×6  seed 3  engine 0.2.1\n\nS - - - - -\n- O Í R - -\n- - L - - -\n- - - - - -\n- - - - - -\n- - - - - -\n\nWords: sol, río"
         assertEquals(expected, p.render())
         val solution = p.solution()
         assertEquals(6, solution.lines().size)
@@ -121,7 +121,7 @@ class LettrasTest {
     fun `uses the bytecode compiler on the JVM`() = assertTrue(lettras.isCompiled)
 
     @Test
-    fun `reports the engine version`() = assertEquals("0.1.0", lettras.engineVersion)
+    fun `reports the engine version`() = assertEquals("0.2.1", lettras.engineVersion)
 
     @Test
     fun `is safe to call from many threads`() {
@@ -226,5 +226,22 @@ class LettrasTest {
         val interpreted = Lettras(useCompiler = false)
         val f = fillFixtures().first()
         assertEquals(f.output, interpreted.fill(f.input))
+    }
+
+    @Test
+    fun `a letter or digit cannot be the empty marker`() {
+        val grid = listOf(listOf("A", "-"))
+        for (bad in listOf("A", "7", "ab", "")) {
+            val e = assertFailsWith<LettrasException> { lettras.fill(FillRequest(grid = grid, empty = bad)) }
+            assertContains(e.message.orEmpty(), "empty")
+        }
+        assertFailsWith<LettrasException> { lettras.generate(PuzzleRequest(listOf("sol"), rows = 8, cols = 8, fill = "A")) }
+    }
+
+    @Test
+    fun `oversized requests are rejected with a readable message`() {
+        assertContains(assertFailsWith<LettrasException> { lettras.generate(PuzzleRequest(listOf("sol"), rows = 101, cols = 8)) }.message.orEmpty(), "at most")
+        assertFailsWith<LettrasException> { lettras.generate(PuzzleRequest(List(501) { "ab" }, rows = 8, cols = 8)) }
+        assertFailsWith<LettrasException> { lettras.generate(PuzzleRequest(listOf("x".repeat(101)), rows = 8, cols = 8)) }
     }
 }

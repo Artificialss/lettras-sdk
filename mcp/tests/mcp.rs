@@ -5,7 +5,7 @@ use axum::body::Body;
 use axum::http::{Request, StatusCode};
 use http_body_util::BodyExt;
 use lettras_mcp::http::{router, AppState};
-use lettras_mcp::limits::client_id;
+use lettras_mcp::limits::{client_id, normalize_ip};
 use lettras_mcp::{handle_message, Gate, LocalEngine, MemoryStore, UsageStore};
 use serde_json::{json, Value};
 use tower::ServiceExt;
@@ -300,7 +300,7 @@ async fn without_a_seed_each_call_differs_and_with_one_it_repeats() {
 
 #[tokio::test]
 async fn fill_does_not_use_up_the_free_puzzle_limit() {
-    let (e, g) = (engine(), gate(1));
+    let (e, g) = (engine(), gate(1)); // fill keeps its default limit of 100
     let puzzle = handle_message(&small(1), &e, &g, "198.51.100.1").await.unwrap();
     let grid = puzzle["result"]["structuredContent"]["grid"].clone();
     for _ in 0..5 {
@@ -330,4 +330,74 @@ async fn bad_fill_arguments_become_tool_errors() {
         assert_eq!(r["result"]["isError"], true, "{args}");
         assert!(r["result"]["content"][0]["text"].as_str().unwrap().contains(expect), "{args}: {}", r["result"]["content"][0]["text"]);
     }
+}
+
+// ---- audit fixes ----
+
+#[test]
+fn ipv6_addresses_in_one_slash_64_are_one_client() {
+    let a = client_id("2001:db8:85a3:8d3:1319:8a2e:370:7344");
+    assert_eq!(a, client_id("2001:db8:85a3:8d3:ffff:ffff:ffff:ffff"), "same /64");
+    assert_eq!(a, client_id("2001:0DB8:85A3:08D3::1"), "case and zero padding do not matter");
+    assert_ne!(a, client_id("2001:db8:85a3:8d4::1"), "another /64");
+    assert_eq!(normalize_ip("2001:db8:85a3:8d3:1319:8a2e:370:7344"), "2001:db8:85a3:8d3::/64");
+}
+
+#[test]
+fn ipv4_and_mapped_ipv6_are_one_client_and_junk_is_kept_as_is() {
+    assert_eq!(client_id("203.0.113.9"), client_id("::ffff:203.0.113.9"));
+    assert_eq!(normalize_ip(" 203.0.113.9 "), "203.0.113.9");
+    assert_eq!(normalize_ip("unknown"), "unknown");
+    assert_eq!(normalize_ip(""), "");
+    assert_ne!(client_id("203.0.113.9"), client_id("203.0.113.10"));
+}
+
+#[tokio::test]
+async fn a_dual_stack_user_still_gets_the_limit_per_family_but_rotating_ipv6_does_not_dodge_it() {
+    let (e, g) = (engine(), gate(2));
+    for i in 0..2u64 {
+        let ip = format!("2001:db8:1:2::{:x}", i + 1); // a different address each time, same /64
+        assert_eq!(handle_message(&small(i + 1), &e, &g, &ip).await.unwrap()["result"]["isError"], false);
+    }
+    let blocked = handle_message(&small(9), &e, &g, "2001:db8:1:2:aaaa:bbbb:cccc:dddd").await.unwrap();
+    assert_eq!(blocked["result"]["isError"], true, "a fresh address in the same /64 must be blocked");
+}
+
+#[tokio::test]
+async fn fill_has_its_own_limit_separate_from_puzzles() {
+    let (e, g) = (engine(), Gate::new(Arc::new(MemoryStore::default()), 5, 0, "https://lettras.org").with_fill_limit(3));
+    let grid = json!([["-", "-"], ["-", "-"]]);
+    for i in 1..=3 {
+        let r = handle_message(&fill_call(json!({ "grid": grid, "seed": i })), &e, &g, "198.51.100.5").await.unwrap();
+        assert_eq!(r["result"]["isError"], false, "fill {i}");
+    }
+    let r = handle_message(&fill_call(json!({ "grid": grid })), &e, &g, "198.51.100.5").await.unwrap();
+    assert_eq!(r["result"]["isError"], true);
+    let text = r["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(text.contains("Fill limit reached") && text.contains("https://lettras.org"), "{text}");
+    assert_eq!(r["result"]["structuredContent"]["limitReached"], true);
+    // generating puzzles is unaffected by the exhausted fill limit
+    let p = handle_message(&small(1), &e, &g, "198.51.100.5").await.unwrap();
+    assert_eq!(p["result"]["isError"], false);
+    // and another client still has its fills
+    let other = handle_message(&fill_call(json!({ "grid": grid })), &e, &g, "198.51.100.6").await.unwrap();
+    assert_eq!(other["result"]["isError"], false);
+}
+
+#[tokio::test]
+async fn invalid_fill_requests_do_not_use_up_the_fill_limit() {
+    let (e, g) = (engine(), Gate::new(Arc::new(MemoryStore::default()), 5, 0, "https://lettras.org").with_fill_limit(1));
+    for _ in 0..4 {
+        let bad = handle_message(&fill_call(json!({ "grid": [] })), &e, &g, "198.51.100.7").await.unwrap();
+        assert_eq!(bad["result"]["isError"], true);
+    }
+    let ok = handle_message(&fill_call(json!({ "grid": [["-"]] })), &e, &g, "198.51.100.7").await.unwrap();
+    assert_eq!(ok["result"]["isError"], false);
+}
+
+#[tokio::test]
+async fn the_engine_rejects_a_letter_as_the_empty_marker_with_a_readable_message() {
+    let r = rpc(fill_call(json!({ "grid": [["A", "-"]], "empty": "A" }))).await.unwrap();
+    assert_eq!(r["result"]["isError"], true);
+    assert!(r["result"]["content"][0]["text"].as_str().unwrap().contains("empty"), "{}", r["result"]["content"][0]["text"]);
 }

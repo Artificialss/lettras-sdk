@@ -89,3 +89,45 @@ async fn an_unreachable_database_lets_requests_through() {
     let usage = gate.hit("203.0.113.7").await;
     assert!(usage.allowed(), "fail open: a storage outage must not take the service down");
 }
+
+#[tokio::test]
+#[ignore = "needs TEST_DATABASE_URL"]
+async fn stale_counters_are_cleaned_up_but_fresh_and_never_reset_ones_are_kept() {
+    let url = std::env::var("TEST_DATABASE_URL").expect("set TEST_DATABASE_URL");
+    let s = PgStore::connect(&url).unwrap();
+    // create the table and two old rows through a direct connection
+    let pool = sqlx_pool(&url).await;
+    s.incr("test:warmup:0", 86_400).await.unwrap();
+    for (k, age) in [("test:stale:old", "10 days"), ("test:stale:recent", "1 hour")] {
+        sqlx_exec(&pool, &format!("INSERT INTO mcp_usage (key, count, window_start) VALUES ('{k}', 3, now() - interval '{age}') ON CONFLICT (key) DO UPDATE SET window_start = now() - interval '{age}'")).await;
+    }
+    // a key ending in 0 that starts a new window triggers the cleanup (window = 1 day => rows older than 3 days go)
+    s.incr(&format!("test:cleanup:{}0", std::process::id()), 86_400).await.unwrap();
+    assert!(!sqlx_exists(&pool, "test:stale:old").await, "10-day-old counter should be deleted");
+    assert!(sqlx_exists(&pool, "test:stale:recent").await, "recent counter must stay");
+    // window 0 (never resets) must never delete anything
+    sqlx_exec(&pool, "INSERT INTO mcp_usage (key, count, window_start) VALUES ('test:stale:forever', 3, now() - interval '400 days') ON CONFLICT (key) DO UPDATE SET window_start = now() - interval '400 days'").await;
+    s.incr(&format!("test:cleanup0:{}0", std::process::id()), 0).await.unwrap();
+    assert!(sqlx_exists(&pool, "test:stale:forever").await, "window 0 counters are permanent");
+    sqlx_exec(&pool, "DELETE FROM mcp_usage WHERE key LIKE 'test:%'").await;
+}
+
+#[tokio::test]
+#[ignore = "needs TEST_DATABASE_URL"]
+async fn an_unreachable_store_reports_a_safe_category_not_connection_details() {
+    let (user, pw, host) = ("nobody", "secret-pw", "db.internal.example");
+    let broken = PgStore::connect(&format!("postgres://{user}:{pw}@{host}:1/none")).unwrap();
+    let err = broken.incr("k", 0).await.unwrap_err();
+    assert!(!err.contains(pw) && !err.contains(host) && !err.contains(user), "leaked: {err}");
+    assert!(err.starts_with("table: ") || err.starts_with("query: "), "{err}");
+}
+
+async fn sqlx_pool(url: &str) -> sqlx::PgPool {
+    sqlx::PgPool::connect(url).await.unwrap()
+}
+async fn sqlx_exec(pool: &sqlx::PgPool, sql: &str) {
+    sqlx::query(sql).execute(pool).await.unwrap();
+}
+async fn sqlx_exists(pool: &sqlx::PgPool, key: &str) -> bool {
+    sqlx::query_scalar::<_, i64>("SELECT count(*) FROM mcp_usage WHERE key = $1").bind(key).fetch_one(pool).await.unwrap() > 0
+}
