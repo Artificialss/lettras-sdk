@@ -6,6 +6,13 @@ All three distributions (npm `lettras`, Maven `org.lettras.artificialss:lettras`
 - **MCP:** the free limit of 5 puzzles is now a lifetime total per client (the default window is 0 = never resets), not 5 per day.
   `LETTRAS_LIMIT_WINDOW_SECS=86400` brings back a daily limit for your own deployment. Messages and docs no longer say "per day".
 
+## 0.2.2 (npm only)
+- **Fix:** `npm install lettras` could not be built by bundlers (webpack, Turbopack, and likely Vite): the loader contained a
+  dead `new URL('lettras_engine_bg.wasm', import.meta.url)` whose file is not shipped, so the build failed with
+  `Can't resolve 'lettras_engine_bg.wasm'`. Plain Node was not affected, which is why the tests missed it. Verified with a real
+  webpack build against 0.2.1 (fails with that exact error) and 0.2.2 (builds). Kotlin/Maven and the MCP server do not use this
+  loader and stay at 0.2.1.
+
 ## 0.2.1
 - **Fix:** `engineVersion` now reports the real engine version (it said `0.1.0` since the first release).
 - **MCP:** IPv6 addresses in the same `/64` count as one client, and IPv4-mapped IPv6 as IPv4, so rotating addresses no longer
