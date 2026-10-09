@@ -7,6 +7,8 @@ kept as one cell each. Runs locally (WebAssembly): no network, no API key. Libra
 npm install lettras
 ```
 
+[npm package](https://www.npmjs.com/package/lettras) · [source and docs](https://github.com/Artificialss/lettras-sdk)
+
 ```js
 import { generate, render } from 'lettras';
 

@@ -7,7 +7,9 @@
 </div>
 
 <p align="center">
-  <img alt="Status" src="https://img.shields.io/badge/status-in%20development-orange.svg">
+  <a href="https://www.npmjs.com/package/lettras"><img alt="npm" src="https://img.shields.io/npm/v/lettras?label=npm&color=cb3837"></a>
+  <a href="https://central.sonatype.com/artifact/org.lettras.artificialss/lettras"><img alt="Maven Central" src="https://img.shields.io/maven-central/v/org.lettras.artificialss/lettras?label=maven%20central&color=orange"></a>
+  <a href="https://registry.modelcontextprotocol.io/v0.1/servers?search=org.lettras/word-search"><img alt="MCP Registry" src="https://img.shields.io/badge/mcp%20registry-org.lettras%2Fword--search-informational.svg"></a>
   <img alt="Languages" src="https://img.shields.io/badge/languages-es%20·%20en%20·%20pt%20·%20fr%20·%20de%20·%20it-blue.svg">
   <img alt="Rust" src="https://img.shields.io/badge/mcp-rust-orange.svg">
   <img alt="MCP" src="https://img.shields.io/badge/protocol-MCP-informational.svg">
@@ -18,15 +20,14 @@ Developer tools for [Lettras](https://lettras.org), the free word-puzzle platfor
 word list in **Spanish, English, Portuguese, French, German and Italian**, with native letters (Ñ, Ç, Ã, Ä, ẞ, È…)
 kept as one cell each, from your own code, a terminal, or an AI assistant.
 
-| Tool | What it is | Where |
-| --- | --- | --- |
-| **`lettras` on npm** | JavaScript/TypeScript library and CLI. Runs locally, no network or API key | [`npm/`](npm) |
-| **`lettras` for Kotlin** | Kotlin library for the JVM and Android. Same engine, runs locally | [`kotlin/`](kotlin) |
-| **Lettras MCP server** | Lets Claude and other MCP clients create puzzles. Written in Rust, runs on Vercel | [`mcp/`](mcp) |
+| Tool | What it is | Install / connect | Source |
+| --- | --- | --- | --- |
+| **`lettras` on npm** | JavaScript/TypeScript library and CLI. Runs locally, no network or API key | `npm install lettras` ([npm](https://www.npmjs.com/package/lettras)) | [`npm/`](npm) |
+| **`lettras` for Kotlin** | Kotlin library for the JVM and Android. Same engine, runs locally | `org.lettras.artificialss:lettras` ([Maven Central](https://central.sonatype.com/artifact/org.lettras.artificialss/lettras)) | [`kotlin/`](kotlin) |
+| **Lettras MCP server** | Lets Claude and other MCP clients create puzzles. Written in Rust, runs on Vercel | `https://mcp.lettras.org/mcp` ([MCP Registry](https://registry.modelcontextprotocol.io/v0.1/servers?search=org.lettras/word-search)) | [`mcp/`](mcp) |
 
-> **Status: in development.** The npm package, the Kotlin library and the MCP server are built and tested. The npm
-> package and the Kotlin library are not published yet; the hosted MCP endpoint is live. A documentation site is
-> planned.
+> **Published.** All three are live: the npm package, the Kotlin library on Maven Central, and the hosted MCP server
+> (also listed in the official MCP Registry). A documentation site is planned.
 
 ## Table of contents
 
