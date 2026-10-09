@@ -2,6 +2,10 @@
 
 All three distributions (npm `lettras`, Maven `org.lettras.artificialss:lettras`, the MCP server) are versioned together.
 
+## Unreleased
+- **MCP:** the free limit of 5 puzzles is now a lifetime total per client (the default window is 0 = never resets), not 5 per day.
+  `LETTRAS_LIMIT_WINDOW_SECS=86400` brings back a daily limit for your own deployment. Messages and docs no longer say "per day".
+
 ## 0.2.1
 - **Fix:** `engineVersion` now reports the real engine version (it said `0.1.0` since the first release).
 - **MCP:** IPv6 addresses in the same `/64` count as one client, and IPv4-mapped IPv6 as IPv4, so rotating addresses no longer
