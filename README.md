@@ -199,7 +199,8 @@ unreachable the request is allowed, so a storage outage never takes the service 
    grid size, language), which you can read in Vercel Logs or forward with a log drain.
 
 The server is described for MCP registries in [`server.json`](server.json); publishing steps are in
-[`docs/REGISTRY.md`](docs/REGISTRY.md).
+[`docs/REGISTRY.md`](docs/REGISTRY.md). Publishing the Kotlin library to Maven Central:
+[`docs/MAVEN_CENTRAL.md`](docs/MAVEN_CENTRAL.md).
 
 No secret is stored in this repository. Real values belong in Vercel's project settings.
 
