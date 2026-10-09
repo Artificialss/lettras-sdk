@@ -121,3 +121,16 @@ test('a letter or digit cannot be the empty marker; oversized input is rejected'
   assert.throws(() => generate({ words: ['sol'], rows: 101, cols: 8 }), /at most/);
   assert.throws(() => generate({ words: Array(501).fill('ab'), rows: 8, cols: 8 }), /words/);
 });
+
+import { readFileSync } from 'node:fs';
+
+test('the published entry points never reference a .wasm file or build a URL (bundlers would fail to resolve it)', () => {
+  // 0.2.1 shipped a dead `new URL('lettras_engine_bg.wasm', import.meta.url)`; the file is not published, so webpack and
+  // Turbopack failed to build any app importing the package. Plain Node never noticed.
+  for (const name of ['lettras_engine.js']) {
+    const text = readFileSync(new URL(`../engine/${name}`, import.meta.url), 'utf8');
+    assert.doesNotMatch(text, /_bg\.wasm/, `${name} references the .wasm file`);
+    assert.doesNotMatch(text, /new URL\(/, `${name} builds a URL`);
+    assert.doesNotMatch(text, /import\.meta\.url/, `${name} uses import.meta.url`);
+  }
+});
