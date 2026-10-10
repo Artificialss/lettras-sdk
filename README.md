@@ -1,5 +1,7 @@
 <div align="center">
 
+  <img alt="Lettras" src="assets/svg/lettras-logo.svg" width="300">
+
   # Lettras SDK
 
   **Word-search puzzles in six languages, with every accent intact.**
@@ -299,6 +301,7 @@ npm/                 the `lettras` package: library, CLI, types, tests
   engine/            compiled engine (proprietary, see engine/LICENSE)
 kotlin/              Kotlin library (JVM and Android): API, Chicory host, tests
   src/main/resources compiled engine (proprietary, see LICENSE-ENGINE)
+assets/              brand kit: logos, icons and social images (see assets/README.md)
 mcp/                 MCP server (Rust): protocol, tools, free-tier gate, Vercel entry point
   engine/            compiled engine (proprietary, see engine/LICENSE)
 .env.example         every optional setting, with no values
@@ -337,6 +340,8 @@ unmodified, through this package or server, in your own products, including comm
 redistribute, modify or reverse-engineer it.
 
 ## About
+
+Logos and brand rules: [`assets/`](assets/README.md).
 
 Lettras is built by **[Artificialss](https://artificialss.ai)**.
 

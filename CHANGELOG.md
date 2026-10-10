@@ -3,6 +3,7 @@
 All three distributions (npm `lettras`, Maven `org.lettras.artificialss:lettras`, the MCP server) are versioned together.
 
 ## Unreleased
+- **Brand:** the Lettras logos, icons and social images are in `assets/` (with usage rules); the READMEs show the logo and `server.json` lists the icon for the MCP Registry (takes effect with the next registry publish).
 - **MCP:** the free limit of 5 puzzles is now a lifetime total per client (the default window is 0 = never resets), not 5 per day.
   `LETTRAS_LIMIT_WINDOW_SECS=86400` brings back a daily limit for your own deployment. Messages and docs no longer say "per day".
 
