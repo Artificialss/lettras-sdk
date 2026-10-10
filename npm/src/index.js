@@ -1,4 +1,4 @@
-import { generate as generateRaw, fill as fillRaw, renderPuzzle as renderRaw } from '../engine/index.js';
+import { generate as generateRaw, fill as fillRaw, findBlocked as findBlockedRaw, renderPuzzle as renderRaw } from '../engine/index.js';
 
 /**
  * Generate a word-search puzzle. Runs locally (WebAssembly), no network needed.
@@ -43,4 +43,15 @@ export function fill(source, options = {}) {
  */
 export function render(output) {
   return renderRaw(JSON.stringify(output));
+}
+
+/**
+ * Blocked words that read in a grid, in all 8 directions, ignoring case and accents. Uses the engine's bank of unwanted
+ * words from all six languages, plus any `blocked` words you add. Each hit has the start (`r`, `c`),
+ * the direction (`dr`, `dc`) and the `length`.
+ * @param {import('../engine/index.js').FindBlockedInput} input
+ * @returns {import('../engine/index.js').BlockedHit[]}
+ */
+export function findBlocked(input) {
+  return JSON.parse(findBlockedRaw(JSON.stringify(input)));
 }
