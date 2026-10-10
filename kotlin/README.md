@@ -2,8 +2,8 @@
 
 # Lettras for Kotlin
 
-Word-search generator for **Spanish, English, Portuguese, French, German and Italian**, with native accented letters
-kept as one cell each. Kotlin library for the **JVM and Android**. It runs the same compiled engine as the npm package
+Word-search generator and Unicode text styles for **Spanish, English, Portuguese, French, German and Italian**, with native
+accented letters kept. Kotlin library for the **JVM and Android**. It runs the same compiled engine as the npm package
 and the MCP server, locally: no network, no API key, and the same seed gives the same puzzle on every platform.
 
 ```kotlin
