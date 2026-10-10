@@ -110,7 +110,7 @@ class LettrasTest {
     @Test
     fun `render matches the CLI format and solution hides the rest`() {
         val p = lettras.generate(PuzzleRequest(listOf("sol", "río"), rows = 6, cols = 6, position = Position.MIXED, seed = 3))
-        val expected = "6×6  seed 3  engine 0.3.0\n\nS - - - - -\n- O Í R - -\n- - L - - -\n- - - - - -\n- - - - - -\n- - - - - -\n\nWords: sol, río"
+        val expected = "6×6  seed 3  engine 0.4.0\n\nS - - - - -\n- O Í R - -\n- - L - - -\n- - - - - -\n- - - - - -\n- - - - - -\n\nWords: sol, río"
         assertEquals(expected, p.render())
         val solution = p.solution()
         assertEquals(6, solution.lines().size)
@@ -121,7 +121,7 @@ class LettrasTest {
     fun `uses the bytecode compiler on the JVM`() = assertTrue(lettras.isCompiled)
 
     @Test
-    fun `reports the engine version`() = assertEquals("0.3.0", lettras.engineVersion)
+    fun `reports the engine version`() = assertEquals("0.4.0", lettras.engineVersion)
 
     @Test
     fun `is safe to call from many threads`() {
@@ -243,5 +243,45 @@ class LettrasTest {
         assertContains(assertFailsWith<LettrasException> { lettras.generate(PuzzleRequest(listOf("sol"), rows = 101, cols = 8)) }.message.orEmpty(), "at most")
         assertFailsWith<LettrasException> { lettras.generate(PuzzleRequest(List(501) { "ab" }, rows = 8, cols = 8)) }
         assertFailsWith<LettrasException> { lettras.generate(PuzzleRequest(listOf("x".repeat(101)), rows = 8, cols = 8)) }
+    }
+
+    @Test
+    fun `stylize keeps accents as a styled base letter plus a combining mark`() {
+        val bold = lettras.stylize("piña", style = "bold").results.single()
+        assertEquals("𝐩𝐢𝐧\u0303𝐚", bold.text)
+        assertEquals(listOf("ñ"), bold.notNative)
+        assertTrue(bold.parts.any { it.missing })
+    }
+
+    @Test
+    fun `stylize gives every style by default, several on request, and classic strips accents`() {
+        val all = lettras.stylize("Hola")
+        assertEquals(22, all.results.size)
+        assertEquals("0.4.0", all.engineVersion)
+        assertEquals(listOf("bold", "script"), lettras.stylize("Hola", listOf("bold", "script")).results.map { it.id })
+        val classic = lettras.stylize("piña", style = "bold", classic = true).results.single()
+        assertEquals("𝐩𝐢𝐧𝐚", classic.text)
+        assertTrue(classic.notNative.isEmpty())
+    }
+
+    @Test
+    fun `stylize reports what a style cannot draw`() {
+        val script = lettras.stylize("Straße", style = "script").results.single()
+        assertEquals(listOf("ß"), script.notNative)
+        assertTrue(script.parts.any { it.missing && it.text == "ß" })
+    }
+
+    @Test
+    fun `stylize rejects an unknown style and overlong text`() {
+        assertTrue(assertFailsWith<LettrasException> { lettras.stylize("x", style = "nope") }.message!!.contains("unknown style"))
+        assertTrue(assertFailsWith<LettrasException> { lettras.stylize("x".repeat(10_001)) }.message!!.contains("too long"))
+    }
+
+    @Test
+    fun `unstyle goes back to plain text and listStyles lists 22 styles`() {
+        val text = "Lettras ejemplo: piña, corazón, lingüística"
+        assertEquals(text, lettras.unstyle(lettras.stylize(text, style = "bold").results.single().text))
+        assertEquals(22, lettras.listStyles().size)
+        assertEquals("bold", lettras.listStyles().first().id)
     }
 }

@@ -147,5 +147,54 @@ public data class FillResult(
     public fun render(): String = grid.joinToString("\n") { it.joinToString(" ") }
 }
 
+/**
+ * Text to write in Unicode styles.
+ *
+ * @property text the text, in its normal spelling (accents kept), up to 10,000 characters
+ * @property style ids of the styles to use (see [Lettras.listStyles]); null = all 22
+ * @property classic true strips accents first (ñ becomes n), for places that render combining accents badly
+ */
+@Serializable
+public data class StylizeRequest(
+    val text: String,
+    val style: List<String>? = null,
+    val classic: Boolean? = null,
+)
+
+/** A piece of styled text. [missing] pieces are what the style cannot draw: show them as an empty box. */
+@Serializable
+public data class StyledPart(val text: String, val missing: Boolean)
+
+/**
+ * One style applied to the text.
+ *
+ * @property notNative the input characters this style cannot render natively, once each, in order of appearance (ß, Æ, Œ, Ø,
+ *   non-Latin scripts, and accents that only exist as a combining mark such as ñ). Empty when everything is fine.
+ * @property parts the output cut into pieces; see [StyledPart]
+ */
+@Serializable
+public data class StyledText(
+    val id: String,
+    val label: String,
+    val category: String,
+    val text: String,
+    val notNative: List<String>,
+    val parts: List<StyledPart>,
+)
+
+/** Result of [Lettras.stylize]: one entry per style, in display order. */
+@Serializable
+public data class StylizeResult(val results: List<StyledText>, val engineVersion: String)
+
+/** A style the engine offers: the [id] to pass, an English [label] and a [category]. */
+@Serializable
+public data class StyleInfo(val id: String, val label: String, val category: String)
+
+@Serializable
+internal data class StyleList(val styles: List<StyleInfo>)
+
+@Serializable
+internal data class TextBody(val text: String)
+
 /** The request was invalid or the engine failed. [message] says why. */
 public class LettrasException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
