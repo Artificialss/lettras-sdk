@@ -1,12 +1,13 @@
 use serde_json::{json, Value};
 
 use crate::backend::PuzzleBackend;
-use crate::limits::Gate;
+use crate::limits::{is_free, Gate, Usage, FREE_MAX_SIDE, FREE_MAX_WORDS};
 use crate::render::{render_matrix, render_puzzle};
 
 const LANGS: [&str; 6] = ["es", "en", "pt", "fr", "de", "it"];
 const POSITIONS: [&str; 3] = ["horizontal", "vertical", "mixed"];
 const FILL_ALLOWED: [&str; 6] = ["grid", "lang", "accents", "seed", "words", "empty"];
+const STYLE_ALLOWED: [&str; 3] = ["text", "style", "classic"];
 const ALLOWED: [&str; 9] = ["words", "rows", "cols", "position", "difficulty", "clustering", "seed", "lang", "classicMode"];
 
 /// Tool definitions returned by `tools/list`.
@@ -15,7 +16,7 @@ pub fn list() -> Value {
         {
             "name": "generate_word_search",
             "title": "Generate a word search",
-            "description": "Create a word-search puzzle (sopa de letras) from a list of words. Keeps native letters (Ñ, Ç, Ã, Ä, ẞ, È…) as one cell each. Returns the grid, where every word is hidden, and any words that did not fit. Empty cells are marked \"-\": call fill_word_search with the grid to complete it with random letters. The same seed always gives the same puzzle.",
+            "description": "Create a word-search puzzle (sopa de letras) from a list of words. Puzzles up to 10x10 with at most 10 words are free and unlimited; bigger ones use the free puzzles each client gets. Keeps native letters (Ñ, Ç, Ã, Ä, ẞ, È…) as one cell each. Returns the grid, where every word is hidden, and any words that did not fit. Empty cells are marked \"-\": call fill_word_search with the grid to complete it with random letters. The same seed always gives the same puzzle.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -50,6 +51,33 @@ pub fn list() -> Value {
                 "required": ["grid"],
                 "additionalProperties": false
             }
+        },
+        {
+            "name": "stylize_text",
+            "title": "Write text in Unicode styles",
+            "description": "Turns text into Unicode styles for social media bios and posts: bold, italic, script, fraktur, monospace, circled, squared, fullwidth, small caps, strikethrough, underline and more (22 styles). Accents are kept: an accented letter becomes its styled base letter plus the combining accent (ñ, ç, ü, ß work). Not every style can draw every character: letters such as ß, Æ, Œ, Ø or non-Latin scripts stay plain, and accented letters rely on a combining mark that some fonts draw badly. Those characters are listed in notNative for each style, and parts with missing: true mark them, so you can warn the user or show an empty box. Set classic to strip accents first. Pass one style id, several, or none for all styles (see list_styles). Runs locally and has no usage limit.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "text": { "type": "string", "minLength": 1, "maxLength": 5000, "description": "The text to style, in its normal spelling (accents kept)." },
+                    "style": {
+                        "oneOf": [
+                            { "type": "string", "description": "One style id, for example bold." },
+                            { "type": "array", "items": { "type": "string" }, "minItems": 1, "maxItems": 22, "description": "Several style ids." }
+                        ],
+                        "description": "Which style(s) to use. Omit for all 22. Ids come from list_styles."
+                    },
+                    "classic": { "type": "boolean", "description": "Strip accents first (ñ becomes n), for places that render combining accents badly." }
+                },
+                "required": ["text"],
+                "additionalProperties": false
+            }
+        },
+        {
+            "name": "list_styles",
+            "title": "List text styles",
+            "description": "The Unicode text styles stylize_text offers, with the id to pass, an English name and a category (bold-italic, sans, script, gothic, mono, enclosed, decoration, other).",
+            "inputSchema": { "type": "object", "properties": {}, "additionalProperties": false }
         },
         {
             "name": "list_languages",
@@ -166,6 +194,73 @@ pub fn validate_fill(args: &Value) -> Result<(), String> {
     Ok(())
 }
 
+/// Checks `stylize_text` arguments. Returns the first problem, in words a model can act on.
+pub fn validate_stylize(args: &Value) -> Result<(), String> {
+    let obj = args.as_object().ok_or("arguments must be an object")?;
+    let text = obj.get("text").and_then(Value::as_str).ok_or("text: a string of 1 to 5000 characters is required")?;
+    if !(1..=5000).contains(&text.chars().count()) {
+        return Err("text: 1 to 5000 characters".into());
+    }
+    match obj.get("style") {
+        None => {}
+        Some(Value::String(s)) if !s.is_empty() => {}
+        Some(Value::Array(a)) if (1..=22).contains(&a.len()) && a.iter().all(|s| s.as_str().is_some_and(|s| !s.is_empty())) => {}
+        Some(_) => return Err("style: a style id, or an array of 1 to 22 style ids (see list_styles)".into()),
+    }
+    if obj.get("classic").is_some_and(|v| !v.is_boolean()) {
+        return Err("classic: true or false".into());
+    }
+    if let Some(unknown) = obj.keys().find(|k| !STYLE_ALLOWED.contains(&k.as_str())) {
+        return Err(format!("unknown argument: {unknown}"));
+    }
+    Ok(())
+}
+
+async fn stylize(args: &Value, backend: &dyn PuzzleBackend) -> Value {
+    // No usage limit: it is instant, local and independent of puzzles.
+    if let Err(e) = validate_stylize(args) {
+        return error_result(e);
+    }
+    match backend.stylize(args.clone()).await {
+        Ok(out) => {
+            let results = out["results"].as_array().cloned().unwrap_or_default();
+            let mut text = results.iter().map(|r| format!("{}: {}", r["id"].as_str().unwrap_or(""), r["text"].as_str().unwrap_or(""))).collect::<Vec<_>>().join("\n");
+            let mut flagged: Vec<&str> = Vec::new();
+            for r in &results {
+                for c in r["notNative"].as_array().into_iter().flatten().filter_map(Value::as_str) {
+                    if !flagged.contains(&c) {
+                        flagged.push(c);
+                    }
+                }
+            }
+            if !flagged.is_empty() {
+                text.push_str(&format!(
+                    "\n\nNote: {} cannot be drawn natively by some of these styles (a combining accent that fonts draw differently, or a letter left plain). See notNative and parts[].missing in the structured result; set classic to true to strip accents.",
+                    flagged.join(", ")
+                ));
+            }
+            text_result(text, Some(out))
+        }
+        Err(e) => error_result(e),
+    }
+}
+
+async fn list_styles(backend: &dyn PuzzleBackend) -> Value {
+    match backend.list_styles().await {
+        Ok(out) => {
+            let text = out["styles"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .map(|s| format!("{} ({}, {})", s["id"].as_str().unwrap_or(""), s["label"].as_str().unwrap_or(""), s["category"].as_str().unwrap_or("")))
+                .collect::<Vec<_>>()
+                .join("\n");
+            text_result(text, Some(out))
+        }
+        Err(e) => error_result(e),
+    }
+}
+
 /// A random seed for callers who did not give one: the filler should differ on every call.
 fn random_seed() -> u64 {
     use std::collections::hash_map::RandomState;
@@ -210,6 +305,8 @@ pub async fn call(name: &str, args: &Value, backend: &dyn PuzzleBackend, gate: &
     match name {
         "generate_word_search" => Some(generate(args, backend, gate, client).await),
         "fill_word_search" => Some(fill(args, backend, gate, client).await),
+        "stylize_text" => Some(stylize(args, backend).await),
+        "list_styles" => Some(list_styles(backend).await),
         "list_languages" => Some(text_result(
             "es Español: Á É Í Ó Ú Ü Ñ\nen English: none\npt Português: Á Â Ã À É Ê Í Ó Ô Õ Ú Ç\nfr Français: À Â Æ Ç É È Ê Ë Î Ï Ô Œ Ù Û Ü Ÿ\nde Deutsch: Ä Ö Ü ẞ\nit Italiano: À È É Ì Ò Ù".into(),
             None,
@@ -223,13 +320,16 @@ async fn generate(args: &Value, backend: &dyn PuzzleBackend, gate: &Gate, client
     if let Err(e) = validate(args) {
         return error_result(e);
     }
-    let usage = gate.hit(client).await;
+    // Small puzzles (up to 10x10 and 10 words) are free and never counted; bigger ones use the per-client free puzzles.
+    let free = is_free(args);
+    let usage = if free { Usage { used: 0, limit: gate.limit } } else { gate.hit(client).await };
     // One JSON line per request: Vercel Logs / Observability / log drains pick it up. No raw IPs, no words.
     println!(
         "{}",
         json!({
             "event": "generate_word_search",
             "client": &crate::limits::client_id(client)[..12],
+            "free": free,
             "allowed": usage.allowed(),
             "used": usage.used,
             "limit": usage.limit,
@@ -248,7 +348,11 @@ async fn generate(args: &Value, backend: &dyn PuzzleBackend, gate: &Gate, client
     match backend.generate(args.clone()).await {
         Ok(puzzle) => {
             let mut text = render_puzzle(&puzzle);
-            text.push_str(&format!("\n\nFree puzzles left: {} of {}.", usage.remaining(), usage.limit));
+            if free {
+                text.push_str(&format!("\n\nThis puzzle is free and does not count: up to {FREE_MAX_SIDE}x{FREE_MAX_SIDE} with {FREE_MAX_WORDS} words or fewer is always free."));
+            } else {
+                text.push_str(&format!("\n\nFree larger puzzles left: {} of {}.", usage.remaining(), usage.limit));
+            }
             text_result(text, Some(puzzle))
         }
         Err(e) => error_result(e),

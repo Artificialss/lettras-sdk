@@ -18,6 +18,12 @@ pub trait PuzzleBackend: Send + Sync {
 
     /// Takes a fill request (camelCase JSON with a `grid`), returns the grid with its empty cells filled.
     async fn fill(&self, input: Value) -> Result<Value, String>;
+
+    /// Takes `{ text, style?, classic? }`, returns `{ results, engineVersion }`.
+    async fn stylize(&self, input: Value) -> Result<Value, String>;
+
+    /// The available text styles: `{ styles: [{ id, label, category }] }`.
+    async fn list_styles(&self) -> Result<Value, String>;
 }
 
 /// Runs the embedded engine in-process (wasmi). No network, no credentials, no environment variables.
@@ -87,5 +93,13 @@ impl PuzzleBackend for Arc<LocalEngine> {
 
     async fn fill(&self, input: Value) -> Result<Value, String> {
         self.call("lettras_fill", input).await
+    }
+
+    async fn stylize(&self, input: Value) -> Result<Value, String> {
+        self.call("lettras_stylize", input).await
+    }
+
+    async fn list_styles(&self) -> Result<Value, String> {
+        self.call("lettras_styles", Value::String(String::new())).await
     }
 }
