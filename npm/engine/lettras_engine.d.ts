@@ -35,6 +35,16 @@ export interface FillOutput {
     blockedLeft: string[];
     engineVersion: string;
 }
+export interface StylizeInput { text: string; style?: string | string[]; classic?: boolean }
+export interface StyledPart { text: string; missing: boolean }
+export interface StyledResult {
+    id: string; label: string; category: string;
+    text: string;
+    notNative: string[];
+    parts: StyledPart[];
+}
+export interface StylizeOutput { results: StyledResult[]; engineVersion: string }
+export interface StyleInfo { id: string; label: string; category: string }
 export interface GenerateOutput {
     grid: string[][];
     placements: Placement[];
@@ -63,9 +73,24 @@ export function findBlocked(input_json: string): string;
 export function generate(input_json: string): string;
 
 /**
+ * `listStyles() -> json`: the ids, English names and categories of every style.
+ */
+export function listStyles(): string;
+
+/**
  * Plain-text view of an output JSON, for terminals.
  */
 export function renderPuzzle(output_json: string): string;
+
+/**
+ * `stylize(inputJson) -> outputJson`: text in one, several or every Unicode style. Throws on invalid input.
+ */
+export function stylize(input_json: string): string;
+
+/**
+ * `unstyle(inputJson) -> outputJson`: styled characters back to plain ones. Throws on invalid input.
+ */
+export function unstyle(input_json: string): string;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
@@ -74,7 +99,10 @@ export interface InitOutput {
     readonly fill: (a: number, b: number, c: number) => void;
     readonly findBlocked: (a: number, b: number, c: number) => void;
     readonly generate: (a: number, b: number, c: number) => void;
+    readonly listStyles: (a: number) => void;
     readonly renderPuzzle: (a: number, b: number, c: number) => void;
+    readonly stylize: (a: number, b: number, c: number) => void;
+    readonly unstyle: (a: number, b: number, c: number) => void;
     readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
     readonly __wbindgen_export: (a: number, b: number) => number;
     readonly __wbindgen_export2: (a: number, b: number, c: number, d: number) => number;
