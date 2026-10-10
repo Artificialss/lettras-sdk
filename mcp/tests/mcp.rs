@@ -48,7 +48,7 @@ async fn lists_tools_with_schemas() {
     let r = rpc(json!({ "jsonrpc": "2.0", "id": 1, "method": "tools/list" })).await.unwrap();
     let tools = r["result"]["tools"].as_array().unwrap();
     let names: Vec<_> = tools.iter().map(|t| t["name"].as_str().unwrap()).collect();
-    assert_eq!(names, ["generate_word_search", "fill_word_search", "list_languages"]);
+    assert_eq!(names, ["generate_word_search", "fill_word_search", "stylize_text", "list_styles", "list_languages"]);
     assert_eq!(tools[0]["inputSchema"]["required"], json!(["words", "rows", "cols"]));
 }
 
@@ -151,36 +151,37 @@ async fn http_layer() {
     assert_eq!(opt.headers()["access-control-allow-origin"], "*");
 }
 
-fn small(seed: u64) -> Value {
-    call(json!({ "words": ["sol", "luna"], "rows": 6, "cols": 6, "seed": seed }))
+/// A puzzle just over the free size (11x11), so it counts toward the per-client limit.
+fn counted(seed: u64) -> Value {
+    call(json!({ "words": ["sol", "luna"], "rows": 11, "cols": 11, "seed": seed }))
 }
 
 #[tokio::test]
 async fn blocks_after_the_free_limit_and_points_to_the_page() {
     let (e, g) = (engine(), gate(5));
     for i in 1..=5u64 {
-        let r = handle_message(&small(i), &e, &g, "198.51.100.1").await.unwrap();
+        let r = handle_message(&counted(i), &e, &g, "198.51.100.1").await.unwrap();
         assert_eq!(r["result"]["isError"], false, "puzzle {i}");
         let text = r["result"]["content"][0]["text"].as_str().unwrap();
-        assert!(text.contains(&format!("Free puzzles left: {} of 5.", 5 - i)), "{text}");
+        assert!(text.contains(&format!("Free larger puzzles left: {} of 5.", 5 - i)), "{text}");
     }
-    let r = handle_message(&small(6), &e, &g, "198.51.100.1").await.unwrap();
+    let r = handle_message(&counted(6), &e, &g, "198.51.100.1").await.unwrap();
     assert_eq!(r["result"]["isError"], true);
     let text = r["result"]["content"][0]["text"].as_str().unwrap();
     assert!(text.contains("Free limit reached") && text.contains("https://lettras.org/lib"), "{text}");
     assert_eq!(r["result"]["structuredContent"]["limitReached"], true);
     assert!(r["result"]["structuredContent"]["grid"].is_null(), "no puzzle once blocked");
     // still blocked on the next try
-    let r = handle_message(&small(7), &e, &g, "198.51.100.1").await.unwrap();
+    let r = handle_message(&counted(7), &e, &g, "198.51.100.1").await.unwrap();
     assert_eq!(r["result"]["isError"], true);
 }
 
 #[tokio::test]
 async fn limits_are_per_client() {
     let (e, g) = (engine(), gate(1));
-    assert_eq!(handle_message(&small(1), &e, &g, "198.51.100.1").await.unwrap()["result"]["isError"], false);
-    assert_eq!(handle_message(&small(2), &e, &g, "198.51.100.1").await.unwrap()["result"]["isError"], true);
-    assert_eq!(handle_message(&small(1), &e, &g, "198.51.100.2").await.unwrap()["result"]["isError"], false);
+    assert_eq!(handle_message(&counted(1), &e, &g, "198.51.100.1").await.unwrap()["result"]["isError"], false);
+    assert_eq!(handle_message(&counted(2), &e, &g, "198.51.100.1").await.unwrap()["result"]["isError"], true);
+    assert_eq!(handle_message(&counted(1), &e, &g, "198.51.100.2").await.unwrap()["result"]["isError"], false);
 }
 
 #[tokio::test]
@@ -192,7 +193,7 @@ async fn invalid_requests_and_list_languages_do_not_use_up_the_limit() {
         let langs = json!({ "jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": { "name": "list_languages" } });
         assert_eq!(handle_message(&langs, &e, &g, "198.51.100.1").await.unwrap()["result"]["isError"], false);
     }
-    assert_eq!(handle_message(&small(1), &e, &g, "198.51.100.1").await.unwrap()["result"]["isError"], false);
+    assert_eq!(handle_message(&counted(1), &e, &g, "198.51.100.1").await.unwrap()["result"]["isError"], false);
 }
 
 #[tokio::test]
@@ -217,7 +218,7 @@ fn client_ids_are_stable_and_hide_the_ip() {
 #[tokio::test]
 async fn http_limit_follows_the_forwarded_address() {
     let app = router(AppState { backend: Arc::new(engine()), gate: Arc::new(gate(1)) });
-    let body = small(1).to_string();
+    let body = counted(1).to_string();
     let send = |ip: &'static str| {
         let app = app.clone();
         let body = body.clone();
@@ -301,13 +302,13 @@ async fn without_a_seed_each_call_differs_and_with_one_it_repeats() {
 #[tokio::test]
 async fn fill_does_not_use_up_the_free_puzzle_limit() {
     let (e, g) = (engine(), gate(1)); // fill keeps its default limit of 100
-    let puzzle = handle_message(&small(1), &e, &g, "198.51.100.1").await.unwrap();
+    let puzzle = handle_message(&counted(1), &e, &g, "198.51.100.1").await.unwrap();
     let grid = puzzle["result"]["structuredContent"]["grid"].clone();
     for _ in 0..5 {
         let r = handle_message(&fill_call(json!({ "grid": grid })), &e, &g, "198.51.100.1").await.unwrap();
         assert_eq!(r["result"]["isError"], false, "fill must stay available after the limit");
     }
-    let blocked = handle_message(&small(2), &e, &g, "198.51.100.1").await.unwrap();
+    let blocked = handle_message(&counted(2), &e, &g, "198.51.100.1").await.unwrap();
     assert_eq!(blocked["result"]["isError"], true, "the puzzle limit still applies to generating");
 }
 
@@ -357,9 +358,9 @@ async fn a_dual_stack_user_still_gets_the_limit_per_family_but_rotating_ipv6_doe
     let (e, g) = (engine(), gate(2));
     for i in 0..2u64 {
         let ip = format!("2001:db8:1:2::{:x}", i + 1); // a different address each time, same /64
-        assert_eq!(handle_message(&small(i + 1), &e, &g, &ip).await.unwrap()["result"]["isError"], false);
+        assert_eq!(handle_message(&counted(i + 1), &e, &g, &ip).await.unwrap()["result"]["isError"], false);
     }
-    let blocked = handle_message(&small(9), &e, &g, "2001:db8:1:2:aaaa:bbbb:cccc:dddd").await.unwrap();
+    let blocked = handle_message(&counted(9), &e, &g, "2001:db8:1:2:aaaa:bbbb:cccc:dddd").await.unwrap();
     assert_eq!(blocked["result"]["isError"], true, "a fresh address in the same /64 must be blocked");
 }
 
@@ -377,7 +378,7 @@ async fn fill_has_its_own_limit_separate_from_puzzles() {
     assert!(text.contains("Fill limit reached") && text.contains("https://lettras.org"), "{text}");
     assert_eq!(r["result"]["structuredContent"]["limitReached"], true);
     // generating puzzles is unaffected by the exhausted fill limit
-    let p = handle_message(&small(1), &e, &g, "198.51.100.5").await.unwrap();
+    let p = handle_message(&counted(1), &e, &g, "198.51.100.5").await.unwrap();
     assert_eq!(p["result"]["isError"], false);
     // and another client still has its fills
     let other = handle_message(&fill_call(json!({ "grid": grid })), &e, &g, "198.51.100.6").await.unwrap();
@@ -407,10 +408,10 @@ async fn with_a_zero_window_the_limit_is_a_lifetime_total() {
     // window 0 = counters never reset: the 5 puzzles are all a client ever gets
     let (e, g) = (engine(), Gate::new(Arc::new(MemoryStore::default()), 5, 0, "https://lettras.org"));
     for i in 1..=5u64 {
-        assert_eq!(handle_message(&small(i), &e, &g, "198.51.100.40").await.unwrap()["result"]["isError"], false);
+        assert_eq!(handle_message(&counted(i), &e, &g, "198.51.100.40").await.unwrap()["result"]["isError"], false);
     }
     tokio::time::sleep(std::time::Duration::from_millis(1200)).await;
-    let r = handle_message(&small(6), &e, &g, "198.51.100.40").await.unwrap();
+    let r = handle_message(&counted(6), &e, &g, "198.51.100.40").await.unwrap();
     assert_eq!(r["result"]["isError"], true, "time passing must not give puzzles back");
     assert!(!r["result"]["content"][0]["text"].as_str().unwrap().contains("per day"));
 }
@@ -421,4 +422,112 @@ async fn the_fill_message_matches_the_window() {
     assert!(Gate::new(store.clone(), 5, 0, "u").with_fill_limit(7).fill_blocked_message().contains("7 in total"));
     assert!(Gate::new(store.clone(), 5, 86_400, "u").with_fill_limit(7).fill_blocked_message().contains("7 per day"));
     assert!(Gate::new(store, 5, 7_200, "u").with_fill_limit(7).fill_blocked_message().contains("every 2 hours"));
+}
+
+// ---- stylize_text / list_styles ----
+fn style_call(args: Value) -> Value {
+    json!({ "jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": { "name": "stylize_text", "arguments": args } })
+}
+
+#[tokio::test]
+async fn stylizes_text_keeping_accents_and_reporting_what_a_style_cannot_draw() {
+    let r = rpc(style_call(json!({ "text": "piña", "style": "bold" }))).await.unwrap();
+    assert_eq!(r["result"]["isError"], false, "{r}");
+    let out = &r["result"]["structuredContent"];
+    assert_eq!(out["engineVersion"], "0.4.0");
+    assert_eq!(out["results"][0]["text"], "𝐩𝐢𝐧\u{303}𝐚"); // styled n + combining tilde, not a precomposed ñ
+    assert_eq!(out["results"][0]["notNative"], json!(["ñ"]));
+    assert!(out["results"][0]["parts"].as_array().unwrap().iter().any(|p| p["missing"] == true));
+    let text = r["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(text.starts_with("bold: ") && text.contains("Note: ñ cannot be drawn natively"), "{text}");
+}
+
+#[tokio::test]
+async fn stylizes_all_styles_by_default_and_several_on_request() {
+    let all = rpc(style_call(json!({ "text": "Hola" }))).await.unwrap();
+    assert_eq!(all["result"]["structuredContent"]["results"].as_array().unwrap().len(), 22);
+    assert!(!all["result"]["content"][0]["text"].as_str().unwrap().contains("Note:"), "plain ASCII has nothing to flag");
+    let two = rpc(style_call(json!({ "text": "Hola", "style": ["bold", "script"] }))).await.unwrap();
+    let ids: Vec<_> = two["result"]["structuredContent"]["results"].as_array().unwrap().iter().map(|r| r["id"].as_str().unwrap().to_string()).collect();
+    assert_eq!(ids, ["bold", "script"]);
+    let classic = rpc(style_call(json!({ "text": "piña", "style": "bold", "classic": true }))).await.unwrap();
+    assert_eq!(classic["result"]["structuredContent"]["results"][0]["text"], "𝐩𝐢𝐧𝐚");
+}
+
+#[tokio::test]
+async fn lists_the_styles() {
+    let r = rpc(json!({ "jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": { "name": "list_styles", "arguments": {} } })).await.unwrap();
+    assert_eq!(r["result"]["isError"], false, "{r}");
+    let styles = r["result"]["structuredContent"]["styles"].as_array().unwrap();
+    assert_eq!(styles.len(), 22);
+    assert_eq!(styles[0]["id"], "bold");
+    assert!(r["result"]["content"][0]["text"].as_str().unwrap().contains("strikethrough"));
+}
+
+#[tokio::test]
+async fn bad_style_arguments_become_tool_errors() {
+    for (args, expect) in [
+        (json!({}), "text"),
+        (json!({ "text": "" }), "text"),
+        (json!({ "text": "x".repeat(5001) }), "5000"),
+        (json!({ "text": "a", "style": 3 }), "style"),
+        (json!({ "text": "a", "style": [] }), "style"),
+        (json!({ "text": "a", "classic": "yes" }), "classic"),
+        (json!({ "text": "a", "surprise": 1 }), "unknown argument"),
+        (json!({ "text": "a", "style": "nope" }), "unknown style"),
+    ] {
+        let r = rpc(style_call(args.clone())).await.unwrap();
+        assert_eq!(r["result"]["isError"], true, "{args}");
+        let text = r["result"]["content"][0]["text"].as_str().unwrap();
+        assert!(text.contains(expect), "{args}: {text}");
+    }
+}
+
+#[tokio::test]
+async fn styles_have_no_usage_limit_and_do_not_touch_puzzles_or_fills() {
+    let (e, g) = (engine(), Gate::new(Arc::new(MemoryStore::default()), 1, 0, "https://lettras.org").with_fill_limit(1));
+    for i in 0..210 {
+        let r = handle_message(&style_call(json!({ "text": "Hola", "style": "bold" })), &e, &g, "198.51.100.7").await.unwrap();
+        assert_eq!(r["result"]["isError"], false, "style call {i} must never be blocked");
+    }
+    // the free puzzle and the fill are untouched by any amount of styling
+    let p = handle_message(&counted(1), &e, &g, "198.51.100.7").await.unwrap();
+    assert_eq!(p["result"]["isError"], false);
+    let f = handle_message(&fill_call(json!({ "grid": [["-", "-"], ["-", "-"]] })), &e, &g, "198.51.100.7").await.unwrap();
+    assert_eq!(f["result"]["isError"], false);
+}
+
+// ---- free small puzzles ----
+fn sized(rows: u64, cols: u64, words: usize) -> Value {
+    let list: Vec<String> = ["sol", "luna", "mar", "rio", "gato", "perro", "mono", "casa", "pan", "uva", "sal", "oso"].iter().take(words).map(|w| w.to_string()).collect();
+    call(json!({ "words": list, "rows": rows, "cols": cols, "seed": 1 }))
+}
+
+#[tokio::test]
+async fn small_puzzles_are_free_and_never_counted() {
+    let (e, g) = (engine(), gate(1)); // one counted puzzle allowed in total
+    for i in 0..30 {
+        let r = handle_message(&sized(10, 10, 10), &e, &g, "198.51.100.20").await.unwrap();
+        assert_eq!(r["result"]["isError"], false, "free puzzle {i}");
+    }
+    let text = handle_message(&sized(6, 6, 2), &e, &g, "198.51.100.20").await.unwrap()["result"]["content"][0]["text"].as_str().unwrap().to_string();
+    assert!(text.contains("free and does not count"), "{text}");
+    // the one counted puzzle is still available afterwards
+    let big = handle_message(&sized(11, 10, 3), &e, &g, "198.51.100.20").await.unwrap();
+    assert_eq!(big["result"]["isError"], false);
+    assert!(big["result"]["content"][0]["text"].as_str().unwrap().contains("Free larger puzzles left: 0 of 1"));
+}
+
+#[tokio::test]
+async fn anything_over_the_free_size_uses_the_limit() {
+    for (rows, cols, words) in [(11, 10, 3), (10, 11, 3), (10, 10, 11), (30, 30, 12)] {
+        let (e, g) = (engine(), gate(2));
+        for i in 1..=2 {
+            let r = handle_message(&sized(rows, cols, words), &e, &g, "198.51.100.21").await.unwrap();
+            assert_eq!(r["result"]["isError"], false, "{rows}x{cols} with {words} words, try {i}");
+        }
+        let r = handle_message(&sized(rows, cols, words), &e, &g, "198.51.100.21").await.unwrap();
+        assert_eq!(r["result"]["isError"], true, "{rows}x{cols} with {words} words must be counted");
+        assert!(r["result"]["content"][0]["text"].as_str().unwrap().contains("always free"));
+    }
 }

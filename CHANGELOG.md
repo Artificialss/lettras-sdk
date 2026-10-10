@@ -2,6 +2,20 @@
 
 All three distributions (npm `lettras`, Maven `org.lettras.artificialss:lettras`, the MCP server) are versioned together.
 
+## 0.4.0
+- **New: Unicode text styles** (the engine behind Social Media Styles). 22 styles (bold, italic, script, fraktur, double-struck,
+  monospace, small caps, fullwidth, circled, squared, parenthesized, strikethrough, underline and more) that **keep accents**: an
+  accented letter is its styled base letter plus the combining mark, so "piña" stays readable. What a style cannot draw (ß, Æ, Œ, Ø,
+  non-Latin scripts, or an accent that only exists as a combining mark) is reported in `notNative` and as `parts` with
+  `missing: true`, so a UI can show an empty box like a phone without that glyph. `classic: true` strips accents first.
+  - npm: `stylize(text, { style?, classic? })`, `unstyle(text)`, `listStyles()`.
+  - Kotlin: `Lettras.stylize(...)`, `unstyle(...)`, `listStyles()`.
+  - MCP: `stylize_text` and `list_styles`. **No usage limit**, and they do not use up puzzles or fills.
+- **MCP free tiers:** puzzles up to **10×10 with at most 10 words are free and unlimited** (never counted). Bigger grids, or more than
+  10 words, use the 5 free puzzles per client (a lifetime total, as before). `fill_word_search` keeps its separate limit of 100.
+  `stylize_text`, `list_styles` and `list_languages` have no limit. Invalid requests still do not count.
+- The engine is 0.4.0 (`engineVersion`); puzzles and fills for the same seed are identical to 0.3.0.
+
 ## 0.3.0
 - **Blocked words in the filler:** `fill` (npm `fill()`, CLI `--random`, Kotlin `Lettras.fill()`, MCP `fill_word_search`) no longer completes an
   unwanted word: the engine carries a bank of about 30,600 blocked words from all six languages and rewrites any filler cell

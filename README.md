@@ -36,6 +36,7 @@ kept as one cell each, from your own code, a terminal, or an AI assistant.
 - [npm package](#npm-package)
 - [Kotlin library](#kotlin-library)
 - [MCP server](#mcp-server)
+- [Text styles](#text-styles)
 - [How puzzles are built](#how-puzzles-are-built)
 - [Architecture and licensing](#architecture-and-licensing)
 - [Repository layout](#repository-layout)
@@ -64,7 +65,7 @@ console.log(render(puzzle));
 ```
 
 ```
-9×12  seed 8  engine 0.3.0
+9×12  seed 8  engine 0.4.0
 
 - - - - - - - - - - - -
 - - - - - - - - - - - -
@@ -199,7 +200,7 @@ and Android details: [`kotlin/README.md`](kotlin/README.md).
 ## MCP server
 
 An [MCP](https://modelcontextprotocol.io) server that lets an AI assistant create puzzles for you. Ask for
-*"a 12×12 sopa de letras about animals, mixed directions, with random letters"* and it calls `generate_word_search`, then `fill_word_search`.
+*"a 12×12 sopa de letras about animals, mixed directions, with random letters"* and it calls `generate_word_search`, then `fill_word_search`. It can also write text in Unicode styles with `stylize_text`.
 
 - **Transport:** streamable HTTP, `POST /mcp` (JSON-RPC). Protocol versions 2025-06-18, 2025-03-26, 2024-11-05.
 - **Runs the engine locally:** the compiled engine is embedded in the server and executed in-process. It makes no
@@ -224,20 +225,31 @@ claude mcp add --transport http lettras https://mcp.lettras.org/mcp
 | --- | --- |
 | `generate_word_search` | Create a puzzle. Arguments match the [options above](#npm-package) (`words`, `rows`, `cols`, `position`, `difficulty`, `clustering`, `seed`, `lang`, `classicMode`). Returns a readable grid and the full structured result. |
 | `fill_word_search` | Complete a puzzle: takes the grid from `generate_word_search` (empty cells `-`) and fills them with random letters in the chosen `lang`, with `accents` on or off. Pass the puzzle's `words` so the filler never creates an extra copy. Does not use up the puzzle limit; it has its own, larger one. |
+| `stylize_text` | Text in Unicode styles (bold, italic, script, fraktur, circled, strikethrough... 22 in all) that **keep accents**. `style` is one id, several, or omitted for all; `classic` strips accents first. Reports in `notNative` and `parts[].missing` what a style cannot draw (ß, Æ, Œ, Ø, non-Latin scripts, accents that only exist as combining marks), so you can warn the user. **No usage limit.** |
+| `list_styles` | The style ids `stylize_text` accepts, with an English name and a category. No usage limit. |
 | `list_languages` | The supported languages and the native letters each adds to its grid. |
 
 Invalid arguments come back as a tool error written for the model to act on (for example
 `rows: an integer from 6 to 30 is required`).
 
-**Limits and privacy.** Each client can create **5 puzzles in total, forever** (there is no daily reset), and call
-`fill_word_search` up to 100 times; after that the tool answers with *"Free limit reached… Visit https://lettras.org"*.
-Invalid requests and `list_languages` do not count. A client is identified by a SHA-256 hash of its IP address, with the
+**Free tiers**
+
+| What | Free use |
+| --- | --- |
+| `generate_word_search`, **small**: up to **10×10** with **at most 10 words** | **Unlimited.** Never counted. |
+| `generate_word_search`, **larger**: a bigger grid (up to 30×30) or more than 10 words | **5 puzzles per client, in total, forever** (there is no daily reset). |
+| `fill_word_search` | 100 calls per client, separate from the puzzles. |
+| `stylize_text`, `list_styles`, `list_languages` | **No limit.** |
+
+After a limit the tool answers with *"Free limit reached… Visit https://lettras.org"*. Invalid requests never count.
+
+**Limits and privacy.** A client is identified by a SHA-256 hash of its IP address, with the
 whole IPv6 `/64` treated as one client so that rotating addresses does not dodge the limit. Because the limit never
 resets, the server keeps one row per client indefinitely: the hash, a count and a timestamp (no addresses, no words, no
 puzzles). The request log carries the same hash prefix, never the address. A hash of an IP address can still count as
 personal data in some jurisdictions, so mention it in your own privacy notice if you operate your own copy. If the
 database is unreachable the request is allowed (and a `usage_store_error` line is logged), so a storage outage never takes
-the service down. The hosted endpoint is public and unauthenticated; it is a free trial of five puzzles, not a bulk
+the service down. The hosted endpoint is public and unauthenticated; small puzzles, styles and languages are free to use, while bigger puzzles are a free trial of five, not a bulk
 service. To run your own copy with a daily limit instead, set `LETTRAS_LIMIT_WINDOW_SECS=86400`.
 
 **Deploy on Vercel**
@@ -258,6 +270,26 @@ The server is described for MCP registries in [`server.json`](server.json); publ
 [`docs/MAVEN_CENTRAL.md`](docs/MAVEN_CENTRAL.md).
 
 No secret is stored in this repository. Real values belong in Vercel's project settings.
+
+## Text styles
+
+Besides puzzles, the same engine writes text in Unicode styles that keep accents (22 styles). It is what powers Social Media Styles at
+[lettras.org](https://lettras.org).
+
+```js
+import { stylize, unstyle, listStyles } from 'lettras';
+
+const out = stylize('Lettras ejemplo: piña, corazón', { style: ['bold', 'script'] });
+out.results[0].text;      // 𝐋𝐞𝐭𝐭𝐫𝐚𝐬 𝐞𝐣𝐞𝐦𝐩𝐥𝐨: 𝐩𝐢𝐧̃𝐚, 𝐜𝐨𝐫𝐚𝐳𝐨́𝐧   (ñ = styled n + combining tilde)
+out.results[0].notNative; // ['ñ', 'ó']: accents that exist in no style as one character
+unstyle(out.results[0].text); // 'Lettras ejemplo: piña, corazón'
+listStyles();             // [{ id: 'bold', label: 'Bold', category: 'bold-italic' }, ...]
+```
+
+`style` is one id, an array of ids, or omitted for all 22. `classic: true` strips accents first. `parts` cuts the output into pieces,
+and `missing: true` marks what a style cannot draw (ß, Æ, Œ, Ø, non-Latin scripts), so a UI can show an empty box like a phone without
+that glyph. Text is limited to 10,000 characters. The same functions exist in Kotlin (`stylize`, `unstyle`, `listStyles`) and as the MCP tools
+`stylize_text` and `list_styles`.
 
 ## How puzzles are built
 

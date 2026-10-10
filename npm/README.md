@@ -50,6 +50,17 @@ npx lettras --words gato,perro,piña --rows 9 --cols 12 --position mixed --rando
 language's letter frequency, `accents: false` limits them to A-Z, and without a `seed` every call is different. Passing the
 puzzle (instead of a bare matrix) also protects its words from accidental extra copies. CLI: `--random` and `--accents on|off`.
 
+**Text styles.** `stylize(text, { style?, classic? })` writes text in 22 Unicode styles (bold, italic, script, fraktur, circled,
+strikethrough...) and keeps accents (a styled base letter plus the combining mark). `style` is one id, an array, or omitted for all;
+the result is `{ results: [{ id, label, category, text, notNative, parts }], engineVersion }`. `notNative` and `parts[].missing`
+report what a style cannot draw (ß, Æ, Œ, Ø, non-Latin scripts), so you can show an empty box. `unstyle(text)` goes back to plain text
+and `listStyles()` lists the styles. Up to 10,000 characters; runs locally.
+
+```js
+import { stylize, unstyle, listStyles } from 'lettras';
+stylize('piña', { style: 'bold' }).results[0].text; // 𝐩𝐢𝐧̃𝐚
+```
+
 **Example.** The same puzzle before and after `fill` (Spanish, seed 5):
 
 ```js

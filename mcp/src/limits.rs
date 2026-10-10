@@ -33,6 +33,18 @@ impl Usage {
     }
 }
 
+/// Puzzles up to this size (rows and columns) and this many words are free and not counted.
+pub const FREE_MAX_SIDE: i64 = 10;
+pub const FREE_MAX_WORDS: usize = 10;
+
+/// True when a (valid) `generate_word_search` request is small enough to be free: at most 10x10 with at most 10 words.
+/// Anything bigger counts toward the per-client free puzzles.
+pub fn is_free(args: &serde_json::Value) -> bool {
+    let side = |k: &str| args.get(k).and_then(serde_json::Value::as_i64).unwrap_or(i64::MAX);
+    let words = args.get("words").and_then(serde_json::Value::as_array).map_or(usize::MAX, Vec::len);
+    side("rows") <= FREE_MAX_SIDE && side("cols") <= FREE_MAX_SIDE && words <= FREE_MAX_WORDS
+}
+
 pub struct Gate {
     store: Arc<dyn UsageStore>,
     pub limit: u64,
@@ -79,7 +91,7 @@ impl Gate {
     /// The message shown when the puzzle limit is reached.
     pub fn blocked_message(&self) -> String {
         format!(
-            "Free limit reached: you have created {} puzzles. Visit {} to create more.",
+            "Free limit reached: you have created {} larger puzzles (small ones, up to {FREE_MAX_SIDE}x{FREE_MAX_SIDE} with {FREE_MAX_WORDS} words or fewer, are always free). Visit {} to create more.",
             self.limit, self.upgrade_url
         )
     }

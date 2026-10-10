@@ -69,6 +69,41 @@ public class Lettras {
     public fun fill(grid: List<List<String>>, lang: Language = Language.ES, accents: Boolean = true, seed: Long? = null): FillResult =
         fill(FillRequest(grid = grid, lang = lang, accents = accents, seed = seed))
 
+    /**
+     * Writes text in Unicode styles that keep accents (22 styles: bold, italic, script, fraktur, circled, strikethrough...).
+     * An accented letter is its styled base letter plus the combining mark. What a style cannot draw is reported in
+     * [StyledText.notNative] and as [StyledPart.missing] parts, so a UI can show an empty box. Throws [LettrasException] for an
+     * unknown style id or text over 10,000 characters.
+     */
+    public fun stylize(request: StylizeRequest): StylizeResult =
+        json.decodeFromString(StylizeResult.serializer(), guard { engine.stylize(json.encodeToString(StylizeRequest.serializer(), request)) })
+
+    /** Shorthand for [stylize]: one [style] id (or all 22 when null). */
+    public fun stylize(text: String, style: String? = null, classic: Boolean = false): StylizeResult =
+        stylize(StylizeRequest(text = text, style = style?.let { listOf(it) }, classic = classic))
+
+    /** Shorthand for [stylize] with several style ids. */
+    public fun stylize(text: String, styles: List<String>, classic: Boolean = false): StylizeResult =
+        stylize(StylizeRequest(text = text, style = styles, classic = classic))
+
+    /** Styled characters back to plain ones, decoration marks removed. For search, validation and tests. */
+    public fun unstyle(text: String): String =
+        json.decodeFromString(TextBody.serializer(), guard { engine.unstyle(json.encodeToString(TextBody.serializer(), TextBody(text))) }).text
+
+    /** The styles [stylize] offers, in display order. */
+    public fun listStyles(): List<StyleInfo> =
+        json.decodeFromString(StyleList.serializer(), guard { engine.listStyles() }).styles
+
+    /** Runs an engine call, turning unexpected failures into [LettrasException]. */
+    private fun guard(call: () -> String): String =
+        try {
+            call()
+        } catch (e: LettrasException) {
+            throw e
+        } catch (e: Exception) {
+            throw LettrasException("the engine failed: ${e.message}", e)
+        }
+
     /** Shorthand for [generate] with the common options. */
     public fun generate(
         words: List<String>,

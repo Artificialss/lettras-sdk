@@ -1,4 +1,12 @@
-import { generate as generateRaw, fill as fillRaw, findBlocked as findBlockedRaw, renderPuzzle as renderRaw } from '../engine/index.js';
+import {
+  generate as generateRaw,
+  fill as fillRaw,
+  findBlocked as findBlockedRaw,
+  stylize as stylizeRaw,
+  unstyle as unstyleRaw,
+  listStyles as listStylesRaw,
+  renderPuzzle as renderRaw,
+} from '../engine/index.js';
 
 /**
  * Generate a word-search puzzle. Runs locally (WebAssembly), no network needed.
@@ -54,4 +62,38 @@ export function render(output) {
  */
 export function findBlocked(input) {
   return JSON.parse(findBlockedRaw(JSON.stringify(input)));
+}
+
+/**
+ * Text in Unicode styles (bold, italic, script, fraktur, circled, strikethrough...) that keeps accents: each accented
+ * letter is its styled base letter plus the combining mark, so "piña" stays readable. Runs locally.
+ *
+ * Pass a string and options, or one object. `style` is one id, an array of ids, or omitted for all 22 styles; the result
+ * always has a `results` array. `classic: true` strips accents first. What a style cannot draw is reported in `notNative`
+ * (the input characters) and as `parts` with `missing: true`, so a UI can show an empty box like a phone without that glyph.
+ * Throws on an unknown style id, invalid input, or text longer than 10,000 characters.
+ * @param {string | import('../engine/index.js').StylizeInput} text
+ * @param {Omit<import('../engine/index.js').StylizeInput, 'text'>} [options]
+ * @returns {import('../engine/index.js').StylizeOutput}
+ */
+export function stylize(text, options = {}) {
+  const input = typeof text === 'string' ? { text, ...options } : { ...text, ...options };
+  return JSON.parse(stylizeRaw(JSON.stringify(input)));
+}
+
+/**
+ * Styled characters back to plain ones (and decoration marks removed). For search, validation and tests.
+ * @param {string} text
+ * @returns {string}
+ */
+export function unstyle(text) {
+  return JSON.parse(unstyleRaw(JSON.stringify({ text }))).text;
+}
+
+/**
+ * The styles `stylize()` offers, in display order: `id`, English `label` and `category`.
+ * @returns {import('../engine/index.js').StyleInfo[]}
+ */
+export function listStyles() {
+  return JSON.parse(listStylesRaw()).styles;
 }

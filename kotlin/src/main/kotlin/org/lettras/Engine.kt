@@ -37,6 +37,15 @@ internal class Engine(wasm: ByteArray, useCompiler: Boolean = true) {
     /** Filled-grid JSON for a request, or throws [LettrasException] with the engine's message. */
     fun fill(requestJson: String): String = call("lettras_fill", requestJson)
 
+    /** Styled-text JSON for a request, or throws [LettrasException] with the engine's message. */
+    fun stylize(requestJson: String): String = call("lettras_stylize", requestJson)
+
+    /** `{ "text" }` JSON in and out: styled characters back to plain ones. */
+    fun unstyle(requestJson: String): String = call("lettras_unstyle", requestJson)
+
+    /** `{ "styles": [...] }` JSON: the available styles. The input is ignored. */
+    fun listStyles(): String = call("lettras_styles", "")
+
     private fun call(function: String, requestJson: String): String {
         val instance = instance()
         val memory = instance.memory()

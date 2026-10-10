@@ -23,7 +23,7 @@ println(puzzle.render())
 ```
 
 ```
-9×12  seed 8  engine 0.3.0
+9×12  seed 8  engine 0.4.0
 
 - - - - - - - - - - - -
 - - - - - - - - - - - -
@@ -79,7 +79,7 @@ Published on [Maven Central](https://central.sonatype.com/artifact/org.lettras.a
 
 ```kotlin
 dependencies {
-    implementation("org.lettras.artificialss:lettras:0.3.0")
+    implementation("org.lettras.artificialss:lettras:0.4.0")
 }
 ```
 
@@ -96,6 +96,11 @@ Building requires JDK 17; the library targets Java 11 and runs on any JVM from 1
 class Lettras {
     fun generate(request: PuzzleRequest): Puzzle
     fun generate(words: List<String>, rows: Int, cols: Int = rows, position: Position? = null, seed: Long? = null, lang: Language? = null): Puzzle
+    fun stylize(text: String, style: String? = null, classic: Boolean = false): StylizeResult
+    fun stylize(text: String, styles: List<String>, classic: Boolean = false): StylizeResult
+    fun stylize(request: StylizeRequest): StylizeResult
+    fun unstyle(text: String): String
+    fun listStyles(): List<StyleInfo>
     val engineVersion: String
     val isCompiled: Boolean   // true = bytecode compiler (JVM), false = interpreter (Android)
 }
@@ -113,6 +118,20 @@ class Lettras {
 | `fill` | Character for empty cells, default `"-"`. |
 
 Options you leave null use the engine's defaults.
+
+**Text styles.** `stylize` writes text in 22 Unicode styles (bold, italic, script, fraktur, circled, strikethrough...) that keep accents:
+an accented letter is its styled base letter plus the combining mark. `style` is one id, a list, or null for all; `classic = true`
+strips accents first. Each `StyledText` has `notNative` (the input characters the style cannot draw natively: ß, Æ, Œ, Ø, non-Latin
+scripts, accents that only exist as a combining mark) and `parts`, where `missing = true` marks what to show as an empty box.
+`unstyle` goes back to plain text and `listStyles` lists the style ids. Text is limited to 10,000 characters; unknown styles and
+overlong text throw `LettrasException`.
+
+```kotlin
+val bold = lettras.stylize("piña", style = "bold").results.single()
+println(bold.text)      // 𝐩𝐢𝐧̃𝐚
+println(bold.notNative) // [ñ]
+println(lettras.unstyle(bold.text)) // piña
+```
 
 **`Puzzle`**
 
