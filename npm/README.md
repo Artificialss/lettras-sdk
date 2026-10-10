@@ -2,8 +2,9 @@
 
 # lettras
 
-Word-search generator for **Spanish, English, Portuguese, French, German and Italian**, with native accented letters
-kept as one cell each. Runs locally (WebAssembly): no network, no API key. Library and CLI.
+Word-search generator and Unicode text styles for **Spanish, English, Portuguese, French, German and Italian**, with native
+accented letters kept (one cell each in a grid, one styled letter plus its accent in text). Runs locally (WebAssembly): no
+network, no API key. Library and CLI.
 
 ```bash
 npm install lettras

@@ -4,7 +4,7 @@
 
   # Lettras SDK
 
-  **Word-search puzzles in six languages, with every accent intact.**
+  **Word-search puzzles and Unicode text styles in six languages, with every accent intact.**
 
 </div>
 
