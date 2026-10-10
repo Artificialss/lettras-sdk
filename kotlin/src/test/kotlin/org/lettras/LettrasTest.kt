@@ -110,7 +110,7 @@ class LettrasTest {
     @Test
     fun `render matches the CLI format and solution hides the rest`() {
         val p = lettras.generate(PuzzleRequest(listOf("sol", "río"), rows = 6, cols = 6, position = Position.MIXED, seed = 3))
-        val expected = "6×6  seed 3  engine 0.2.1\n\nS - - - - -\n- O Í R - -\n- - L - - -\n- - - - - -\n- - - - - -\n- - - - - -\n\nWords: sol, río"
+        val expected = "6×6  seed 3  engine 0.3.0\n\nS - - - - -\n- O Í R - -\n- - L - - -\n- - - - - -\n- - - - - -\n- - - - - -\n\nWords: sol, río"
         assertEquals(expected, p.render())
         val solution = p.solution()
         assertEquals(6, solution.lines().size)
@@ -121,7 +121,7 @@ class LettrasTest {
     fun `uses the bytecode compiler on the JVM`() = assertTrue(lettras.isCompiled)
 
     @Test
-    fun `reports the engine version`() = assertEquals("0.2.1", lettras.engineVersion)
+    fun `reports the engine version`() = assertEquals("0.3.0", lettras.engineVersion)
 
     @Test
     fun `is safe to call from many threads`() {

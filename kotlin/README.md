@@ -1,3 +1,5 @@
+<p align="center"><img alt="Lettras" src="https://raw.githubusercontent.com/Artificialss/lettras-sdk/main/assets/svg/lettras-logo.svg" width="260"></p>
+
 # Lettras for Kotlin
 
 Word-search generator for **Spanish, English, Portuguese, French, German and Italian**, with native accented letters
@@ -21,7 +23,7 @@ println(puzzle.render())
 ```
 
 ```
-9×12  seed 8  engine 0.2.1
+9×12  seed 8  engine 0.3.0
 
 - - - - - - - - - - - -
 - - - - - - - - - - - -
@@ -77,7 +79,7 @@ Published on [Maven Central](https://central.sonatype.com/artifact/org.lettras.a
 
 ```kotlin
 dependencies {
-    implementation("org.lettras.artificialss:lettras:0.2.1")
+    implementation("org.lettras.artificialss:lettras:0.3.0")
 }
 ```
 

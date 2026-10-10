@@ -3,7 +3,11 @@
   "name": "org.lettras/word-search",
   "title": "Lettras word search",
   "description": "Create word-search puzzles in 6 languages (es, en, pt, fr, de, it) with native accented letters.",
-  "version": "0.2.1",
+  "version": "0.3.0",
+  "icons": [
+    { "src": "https://raw.githubusercontent.com/Artificialss/lettras-sdk/main/assets/png/lettras-icon-512.png", "mimeType": "image/png", "sizes": ["512x512"] },
+    { "src": "https://raw.githubusercontent.com/Artificialss/lettras-sdk/main/assets/svg/lettras-icon.svg", "mimeType": "image/svg+xml", "sizes": ["any"] }
+  ],
   "repository": {
     "url": "https://github.com/Artificialss/lettras-sdk",
     "source": "github",

@@ -1,6 +1,6 @@
 {
   "name": "lettras",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Word-search generator for 6 languages with native accented letters (es, en, pt, fr, de, it). Runs locally via WebAssembly. Library and CLI.",
   "type": "module",
   "main": "./src/index.js",
