@@ -2,8 +2,16 @@
 
 All three distributions (npm `lettras`, Maven `org.lettras.artificialss:lettras`, the MCP server) are versioned together.
 
-## Unreleased
-- **Brand:** the Lettras logos, icons and social images are in `assets/` (with usage rules); the READMEs show the logo and `server.json` lists the icon for the MCP Registry (takes effect with the next registry publish).
+## 0.3.0
+- **Blocked words in the filler:** `fill` (npm `fill()`, CLI `--random`, Kotlin `Lettras.fill()`, MCP `fill_word_search`) no longer completes an
+  unwanted word: the engine carries a bank of about 30,600 blocked words from all six languages and rewrites any filler cell
+  that would spell one, in all 8 directions (a 30x30 scan takes about 3 ms; nothing is built at startup). It is on by default; `avoidBlocked: false`
+  turns it off and `blocked: [...]` adds your own words. `blockedLeft` in the result lists blocked words that still read in
+  the grid (only when there are any, normally a word you hid yourself). Fills for the same seed can differ from 0.2.x
+  wherever the old filler would have formed a blocked word.
+- **New:** `findBlocked({ grid, blocked? })` returns every blocked word that reads in a grid, with position and direction.
+- **Brand:** the Lettras logos, icons and social images are in `assets/` (with usage rules); the READMEs show the logo and
+  `server.json` lists the icon for the MCP Registry.
 - **MCP:** the free limit of 5 puzzles is now a lifetime total per client (the default window is 0 = never resets), not 5 per day.
   `LETTRAS_LIMIT_WINDOW_SECS=86400` brings back a daily limit for your own deployment. Messages and docs no longer say "per day".
 

@@ -64,7 +64,7 @@ console.log(render(puzzle));
 ```
 
 ```
-9×12  seed 8  engine 0.2.1
+9×12  seed 8  engine 0.3.0
 
 - - - - - - - - - - - -
 - - - - - - - - - - - -

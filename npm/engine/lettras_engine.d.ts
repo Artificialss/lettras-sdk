@@ -15,8 +15,12 @@ export interface GenerateInput {
     fill?: string;
 }
 export interface Placement { word: string; r: number; c: number; dr: number; dc: number; length: number }
+export interface FindBlockedInput { grid: string[][]; blocked?: string[] }
+export interface BlockedHit { word: string; r: number; c: number; dr: number; dc: number; length: number }
 export interface FillInput {
     grid: string[][];
+    avoidBlocked?: boolean; // default true
+    blocked?: string[];
     lang?: string;
     accents?: boolean;
     seed?: number;
@@ -28,6 +32,7 @@ export interface FillOutput {
     filled: number;
     seed: number;
     ambiguous: string[];
+    blockedLeft: string[];
     engineVersion: string;
 }
 export interface GenerateOutput {
@@ -48,6 +53,11 @@ export interface GenerateOutput {
 export function fill(input_json: string): string;
 
 /**
+ * `findBlocked(inputJson) -> hitsJson`: blocked words that read in a grid, in all 8 directions. Throws on invalid input.
+ */
+export function findBlocked(input_json: string): string;
+
+/**
  * `generate(inputJson) -> outputJson`. Throws on invalid input.
  */
 export function generate(input_json: string): string;
@@ -62,6 +72,7 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly fill: (a: number, b: number, c: number) => void;
+    readonly findBlocked: (a: number, b: number, c: number) => void;
     readonly generate: (a: number, b: number, c: number) => void;
     readonly renderPuzzle: (a: number, b: number, c: number) => void;
     readonly __wbindgen_add_to_stack_pointer: (a: number) => number;

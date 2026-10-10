@@ -1,6 +1,6 @@
-import type { FillInput, FillOutput, GenerateInput, GenerateOutput, Placement, Position } from '../engine/index.js';
+import type { BlockedHit, FillInput, FillOutput, FindBlockedInput, GenerateInput, GenerateOutput, Placement, Position } from '../engine/index.js';
 
-export type { FillInput, FillOutput, GenerateInput, GenerateOutput, Placement, Position };
+export type { BlockedHit, FillInput, FillOutput, FindBlockedInput, GenerateInput, GenerateOutput, Placement, Position };
 
 /** Options for {@link fill}: everything in {@link FillInput} except the grid. */
 export type FillOptions = Omit<FillInput, 'grid'>;
@@ -19,3 +19,6 @@ export function fill(input: FillInput, options?: FillOptions): FillOutput;
 
 /** Plain-text view of a puzzle (grid and word bank). */
 export function render(output: GenerateOutput): string;
+
+/** Blocked words that read in a grid, in all 8 directions, ignoring case and accents (all six languages). */
+export function findBlocked(input: FindBlockedInput): BlockedHit[];

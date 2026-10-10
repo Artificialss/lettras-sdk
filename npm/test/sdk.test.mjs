@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { test } from 'node:test';
-import { generate, render } from '../src/index.js';
+import { findBlocked, generate, render } from '../src/index.js';
 
 const cli = new URL('../bin/lettras.js', import.meta.url).pathname;
 const run = (...args) => execFileSync('node', [cli, ...args], { encoding: 'utf8' });
@@ -109,8 +109,8 @@ test('CLI --random fills the grid; --accents off keeps it plain', () => {
 });
 
 test('reports the real engine version', () => {
-  assert.equal(generate({ words: ['sol'], rows: 6, cols: 6 }).engineVersion, '0.2.1');
-  assert.equal(fill([['-']]).engineVersion, '0.2.1');
+  assert.equal(generate({ words: ['sol'], rows: 6, cols: 6 }).engineVersion, '0.3.0');
+  assert.equal(fill([['-']]).engineVersion, '0.3.0');
 });
 
 test('a letter or digit cannot be the empty marker; oversized input is rejected', () => {
@@ -133,4 +133,15 @@ test('the published entry points never reference a .wasm file or build a URL (bu
     assert.doesNotMatch(text, /new URL\(/, `${name} builds a URL`);
     assert.doesNotMatch(text, /import\.meta\.url/, `${name} uses import.meta.url`);
   }
+});
+
+test('findBlocked finds a word in any direction and fill keeps blocked words out', () => {
+  const only = (hits) => hits.filter((h) => h.word === 'GATO');
+  assert.equal(only(findBlocked({ grid: [['Q', 'Q', 'Q', 'Q']], blocked: ['gato'] })).length, 0);
+  const hits = only(findBlocked({ grid: [['Q', 'O', 'T', 'A', 'G', 'Q']], blocked: ['gato'] }));
+  assert.deepEqual(hits.map((h) => [h.word, h.dc, h.length]), [['GATO', -1, 4]]);
+  const extra = ['ESA', 'ASE', 'OSO'];
+  const out = fill(Array.from({ length: 12 }, () => Array(12).fill('-')), { lang: 'es', seed: 5, blocked: extra });
+  assert.deepEqual(findBlocked({ grid: out.grid, blocked: extra }), []);
+  assert.equal(out.blockedLeft, undefined);
 });
