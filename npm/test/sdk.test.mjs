@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { test } from 'node:test';
-import { findBlocked, generate, render } from '../src/index.js';
+import { findBlocked, generate, listStyles, render, stylize, unstyle } from '../src/index.js';
 
 const cli = new URL('../bin/lettras.js', import.meta.url).pathname;
 const run = (...args) => execFileSync('node', [cli, ...args], { encoding: 'utf8' });
@@ -109,8 +109,8 @@ test('CLI --random fills the grid; --accents off keeps it plain', () => {
 });
 
 test('reports the real engine version', () => {
-  assert.equal(generate({ words: ['sol'], rows: 6, cols: 6 }).engineVersion, '0.3.0');
-  assert.equal(fill([['-']]).engineVersion, '0.3.0');
+  assert.equal(generate({ words: ['sol'], rows: 6, cols: 6 }).engineVersion, '0.4.0');
+  assert.equal(fill([['-']]).engineVersion, '0.4.0');
 });
 
 test('a letter or digit cannot be the empty marker; oversized input is rejected', () => {
@@ -144,4 +144,47 @@ test('findBlocked finds a word in any direction and fill keeps blocked words out
   const out = fill(Array.from({ length: 12 }, () => Array(12).fill('-')), { lang: 'es', seed: 5, blocked: extra });
   assert.deepEqual(findBlocked({ grid: out.grid, blocked: extra }), []);
   assert.equal(out.blockedLeft, undefined);
+});
+
+test('stylize: every style by default, accents kept as base letter plus combining mark', () => {
+  const out = stylize('piña');
+  assert.equal(out.results.length, 22);
+  assert.equal(out.engineVersion, '0.4.0');
+  const bold = out.results.find((r) => r.id === 'bold');
+  assert.equal(bold.text, '𝐩𝐢𝐧\u0303𝐚'); // styled n + U+0303, not a precomposed ñ
+  assert.deepEqual(bold.notNative, ['ñ']);
+  assert.ok(bold.parts.some((p) => p.missing && p.text.includes('\u0303')));
+});
+
+test('stylize: one style, several styles, classic mode', () => {
+  assert.equal(stylize('Hola', { style: 'bold' }).results.length, 1);
+  assert.deepEqual(stylize({ text: 'Hola', style: ['bold', 'script'] }).results.map((r) => r.id), ['bold', 'script']);
+  const classic = stylize('piña', { style: 'bold', classic: true }).results[0];
+  assert.equal(classic.text, '𝐩𝐢𝐧𝐚');
+  assert.deepEqual(classic.notNative, []);
+});
+
+test('stylize: what a style cannot draw is reported (ß in script)', () => {
+  const r = stylize('Straße', { style: 'script' }).results[0];
+  assert.deepEqual(r.notNative, ['ß']);
+  assert.ok(r.parts.some((p) => p.missing && p.text === 'ß'));
+});
+
+test('stylize: decoration styles add a mark to each character', () => {
+  assert.equal(stylize('ab', { style: 'strikethrough' }).results[0].text, 'a\u0336b\u0336');
+});
+
+test('stylize: errors name the problem', () => {
+  assert.throws(() => stylize('x', { style: 'nope' }), /unknown style: nope/);
+  assert.throws(() => stylize('x'.repeat(10_001)), /too long/);
+});
+
+test('unstyle goes back to plain text, accents included; listStyles lists all 22', () => {
+  const text = 'Lettras ejemplo: piña, corazón, lingüística';
+  for (const r of stylize(text).results) {
+    if (r.id === 'small-caps' || r.id === 'squared' || r.id === 'negative-squared' || r.id === 'negative-circled') continue; // capital-only styles lose case
+    assert.equal(unstyle(r.text), text, r.id);
+  }
+  assert.equal(listStyles().length, 22);
+  assert.deepEqual(Object.keys(listStyles()[0]).sort(), ['category', 'id', 'label']);
 });
