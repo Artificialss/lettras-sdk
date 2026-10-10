@@ -291,6 +291,62 @@ and `missing: true` marks what a style cannot draw (ß, Æ, Œ, Ø, non-Latin sc
 that glyph. Text is limited to 10,000 characters. The same functions exist in Kotlin (`stylize`, `unstyle`, `listStyles`) and as the MCP tools
 `stylize_text` and `list_styles`.
 
+### Examples
+
+Every style applied to `Lettras ejemplo: piña` (real output of `stylize`). The accent in `piña` is the styled `n` plus a combining
+tilde, so how it looks depends on the font; the decoration styles (strikethrough, underline) mark every character, accents included.
+
+| Style id | Result |
+| --- | --- |
+| `bold` | 𝐋𝐞𝐭𝐭𝐫𝐚𝐬 𝐞𝐣𝐞𝐦𝐩𝐥𝐨: 𝐩𝐢𝐧̃𝐚 |
+| `italic` | 𝐿𝑒𝑡𝑡𝑟𝑎𝑠 𝑒𝑗𝑒𝑚𝑝𝑙𝑜: 𝑝𝑖𝑛̃𝑎 |
+| `bold-italic` | 𝑳𝒆𝒕𝒕𝒓𝒂𝒔 𝒆𝒋𝒆𝒎𝒑𝒍𝒐: 𝒑𝒊𝒏̃𝒂 |
+| `sans` | 𝖫𝖾𝗍𝗍𝗋𝖺𝗌 𝖾𝗃𝖾𝗆𝗉𝗅𝗈: 𝗉𝗂𝗇̃𝖺 |
+| `sans-bold` | 𝗟𝗲𝘁𝘁𝗿𝗮𝘀 𝗲𝗷𝗲𝗺𝗽𝗹𝗼: 𝗽𝗶𝗻̃𝗮 |
+| `sans-italic` | 𝘓𝘦𝘵𝘵𝘳𝘢𝘴 𝘦𝘫𝘦𝘮𝘱𝘭𝘰: 𝘱𝘪𝘯̃𝘢 |
+| `sans-bold-italic` | 𝙇𝙚𝙩𝙩𝙧𝙖𝙨 𝙚𝙟𝙚𝙢𝙥𝙡𝙤: 𝙥𝙞𝙣̃𝙖 |
+| `script` | ℒℯ𝓉𝓉𝓇𝒶𝓈 ℯ𝒿ℯ𝓂𝓅𝓁ℴ: 𝓅𝒾𝓃̃𝒶 |
+| `bold-script` | 𝓛𝓮𝓽𝓽𝓻𝓪𝓼 𝓮𝓳𝓮𝓶𝓹𝓵𝓸: 𝓹𝓲𝓷̃𝓪 |
+| `fraktur` | 𝔏𝔢𝔱𝔱𝔯𝔞𝔰 𝔢𝔧𝔢𝔪𝔭𝔩𝔬: 𝔭𝔦𝔫̃𝔞 |
+| `bold-fraktur` | 𝕷𝖊𝖙𝖙𝖗𝖆𝖘 𝖊𝖏𝖊𝖒𝖕𝖑𝖔: 𝖕𝖎𝖓̃𝖆 |
+| `double-struck` | 𝕃𝕖𝕥𝕥𝕣𝕒𝕤 𝕖𝕛𝕖𝕞𝕡𝕝𝕠: 𝕡𝕚𝕟̃𝕒 |
+| `monospace` | 𝙻𝚎𝚝𝚝𝚛𝚊𝚜 𝚎𝚓𝚎𝚖𝚙𝚕𝚘: 𝚙𝚒𝚗̃𝚊 |
+| `small-caps` | ʟᴇᴛᴛʀᴀꜱ ᴇᴊᴇᴍᴘʟᴏ: ᴘɪɴ̃ᴀ |
+| `fullwidth` | Ｌｅｔｔｒａｓ ｅｊｅｍｐｌｏ： ｐｉｎ̃ａ |
+| `circled` | Ⓛⓔⓣⓣⓡⓐⓢ ⓔⓙⓔⓜⓟⓛⓞ: ⓟⓘⓝ̃ⓐ |
+| `negative-circled` | 🅛🅔🅣🅣🅡🅐🅢 🅔🅙🅔🅜🅟🅛🅞: 🅟🅘🅝̃🅐 |
+| `squared` | 🄻🄴🅃🅃🅁🄰🅂 🄴🄹🄴🄼🄿🄻🄾: 🄿🄸🄽̃🄰 |
+| `negative-squared` | 🅻🅴🆃🆃🆁🅰🆂 🅴🅹🅴🅼🅿🅻🅾: 🅿🅸🅽̃🅰 |
+| `parenthesized` | 🄛⒠⒯⒯⒭⒜⒮ ⒠⒥⒠⒨⒫⒧⒪: ⒫⒤⒩̃⒜ |
+| `strikethrough` | L̶e̶t̶t̶r̶a̶s̶ e̶j̶e̶m̶p̶l̶o̶:̶ p̶i̶ñ̶a̶ |
+| `underline` | L̲e̲t̲t̲r̲a̲s̲ e̲j̲e̲m̲p̲l̲o̲:̲ p̲i̲ñ̲a̲ |
+
+**What a style cannot draw.** `ñ`, `ó`, `ü`... are flagged in `notNative` for every letter style, because the accent is a combining mark. `ß`, `Æ`, `Œ`, `Ø` and non-Latin scripts have no styled version and stay plain:
+
+```js
+stylize('Straße', { style: 'script' }).results[0].parts;
+// [ { text: '𝒮𝓉𝓇𝒶', missing: false }, { text: 'ß', missing: true }, { text: 'ℯ', missing: false } ]
+// show the missing piece as an empty box, or warn the user
+```
+
+**Classic mode** strips accents first, so nothing is flagged:
+
+```js
+stylize('piña', { style: 'bold', classic: true }).results[0];
+// { id: 'bold', text: '𝐩𝐢𝐧𝐚', notNative: [], ... }
+```
+
+**One style, several styles, or all** (`results` is always an array):
+
+```js
+stylize('Hola', { style: 'bold' }).results.length;              // 1
+stylize('Hola', { style: ['bold', 'script'] }).results.length;  // 2
+stylize('Hola').results.length;                                 // 22
+```
+
+**Kotlin and MCP.** `lettras.stylize("piña", style = "bold")` returns the same results; in an MCP client, ask for *"write 'Lettras ejemplo' in bold and script"*
+and the assistant calls `stylize_text` with `{ "text": "Lettras ejemplo", "style": ["bold", "script"] }`.
+
 ## How puzzles are built
 
 1. **Normalize.** Each word becomes one grapheme per cell, uppercase, with `ß` → `ẞ` (a plain uppercase would give
