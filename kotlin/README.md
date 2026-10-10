@@ -1,3 +1,5 @@
+<p align="center"><img alt="Lettras" src="https://raw.githubusercontent.com/Artificialss/lettras-sdk/main/assets/svg/lettras-logo.svg" width="260"></p>
+
 # Lettras for Kotlin
 
 Word-search generator for **Spanish, English, Portuguese, French, German and Italian**, with native accented letters
