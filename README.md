@@ -291,6 +291,35 @@ and `missing: true` marks what a style cannot draw (ß, Æ, Œ, Ø, non-Latin sc
 that glyph. Text is limited to 10,000 characters. The same functions exist in Kotlin (`stylize`, `unstyle`, `listStyles`) and as the MCP tools
 `stylize_text` and `list_styles`.
 
+### The name in every style
+
+`stylize('Lettras')` (real output). The list is in display order, which is also the order of `listStyles()`.
+
+| Style id | Name | Lettras |
+| --- | --- | --- |
+| `bold` | Bold | 𝐋𝐞𝐭𝐭𝐫𝐚𝐬 |
+| `italic` | Italic | 𝐿𝑒𝑡𝑡𝑟𝑎𝑠 |
+| `bold-italic` | Bold italic | 𝑳𝒆𝒕𝒕𝒓𝒂𝒔 |
+| `sans` | Sans-serif | 𝖫𝖾𝗍𝗍𝗋𝖺𝗌 |
+| `sans-bold` | Sans-serif bold | 𝗟𝗲𝘁𝘁𝗿𝗮𝘀 |
+| `sans-italic` | Sans-serif italic | 𝘓𝘦𝘵𝘵𝘳𝘢𝘴 |
+| `sans-bold-italic` | Sans-serif bold italic | 𝙇𝙚𝙩𝙩𝙧𝙖𝙨 |
+| `script` | Script | ℒℯ𝓉𝓉𝓇𝒶𝓈 |
+| `bold-script` | Bold script | 𝓛𝓮𝓽𝓽𝓻𝓪𝓼 |
+| `fraktur` | Fraktur | 𝔏𝔢𝔱𝔱𝔯𝔞𝔰 |
+| `bold-fraktur` | Bold fraktur | 𝕷𝖊𝖙𝖙𝖗𝖆𝖘 |
+| `double-struck` | Double-struck | 𝕃𝕖𝕥𝕥𝕣𝕒𝕤 |
+| `monospace` | Monospace | 𝙻𝚎𝚝𝚝𝚛𝚊𝚜 |
+| `small-caps` | Small caps | ʟᴇᴛᴛʀᴀꜱ |
+| `fullwidth` | Fullwidth | Ｌｅｔｔｒａｓ |
+| `circled` | Circled | Ⓛⓔⓣⓣⓡⓐⓢ |
+| `negative-circled` | Negative circled | 🅛🅔🅣🅣🅡🅐🅢 |
+| `squared` | Squared | 🄻🄴🅃🅃🅁🄰🅂 |
+| `negative-squared` | Negative squared | 🅻🅴🆃🆃🆁🅰🆂 |
+| `parenthesized` | Parenthesized | 🄛⒠⒯⒯⒭⒜⒮ |
+| `strikethrough` | Strikethrough | L̶e̶t̶t̶r̶a̶s̶ |
+| `underline` | Underline | L̲e̲t̲t̲r̲a̲s̲ |
+
 ### Examples
 
 Every style applied to `Lettras ejemplo: piña` (real output of `stylize`). The accent in `piña` is the styled `n` plus a combining
