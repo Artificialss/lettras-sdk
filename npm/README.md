@@ -123,3 +123,7 @@ It needs Node 20 or newer (or any modern browser bundler) and ships its own Type
 
 Wrapper, CLI and types: MIT. The compiled engine in `engine/` is proprietary: use it unmodified through this package;
 see `engine/LICENSE`. Source and issues: <https://github.com/Artificialss/lettras-sdk>.
+
+---
+
+<p align="center">Made by <a href="https://artificialss.ai">Artificialss</a> · <a href="https://lettras.org">lettras.org</a></p>
