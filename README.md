@@ -37,6 +37,7 @@ kept as one cell each, from your own code, a terminal, or an AI assistant.
 - [Kotlin library](#kotlin-library)
 - [MCP server](#mcp-server)
 - [Text styles](#text-styles)
+- [Crossword and sudoku (coming in 0.5.0)](#crossword-and-sudoku-coming-in-050)
 - [How puzzles are built](#how-puzzles-are-built)
 - [Architecture and licensing](#architecture-and-licensing)
 - [Repository layout](#repository-layout)
@@ -375,6 +376,15 @@ stylize('Hola').results.length;                                 // 22
 
 **Kotlin and MCP.** `lettras.stylize("piña", style = "bold")` returns the same results; in an MCP client, ask for *"write 'Lettras ejemplo' in bold and script"*
 and the assistant calls `stylize_text` with `{ "text": "Lettras ejemplo", "style": ["bold", "script"] }`.
+
+## Crossword and sudoku (coming in 0.5.0)
+
+Two more generators from the same engine, in the next release:
+
+- **Crossword (crucigrama):** words and clues in, a connected crossword out. The result has a `puzzle` matrix (the clue number on the
+  first cell of each word, `0` on the other letter cells, `-` for blanks, and `a/d` such as `1/2` when an across and a down word start in
+  the same cell) and a `solution` matrix with the letters. See [docs/CROSSWORD.md](docs/CROSSWORD.md).
+- **Sudoku:** puzzles with a single solution (4, 6, 9, 12 or 16 wide, difficulty 1 to 4) and a solver. See [docs/SUDOKU.md](docs/SUDOKU.md).
 
 ## How puzzles are built
 

@@ -2,6 +2,12 @@
 
 All three distributions (npm `lettras`, Maven `org.lettras.artificialss:lettras`, the MCP server) are versioned together.
 
+## Unreleased (0.5.0)
+- **Crossword (crucigrama):** `crossword({ entries, rows, cols, ... })` returns a `puzzle` matrix (word numbers, `0`, `-`, and `a/d` where an
+  across and a down word start in the same cell), a `solution` matrix and `placements` with the clue of each word. npm, Kotlin and MCP.
+  See `docs/CROSSWORD.md`.
+- **Sudoku:** `sudoku({ size, difficulty, seed })` (unique solution) and `solveSudoku(grid)`. npm, Kotlin and MCP. See `docs/SUDOKU.md`.
+
 ## 0.4.0
 - **New: Unicode text styles** (the engine behind Social Media Styles). 22 styles (bold, italic, script, fraktur, double-struck,
   monospace, small caps, fullwidth, circled, squared, parenthesized, strikethrough, underline and more) that **keep accents**: an
