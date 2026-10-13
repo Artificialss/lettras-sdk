@@ -110,7 +110,7 @@ class LettrasTest {
     @Test
     fun `render matches the CLI format and solution hides the rest`() {
         val p = lettras.generate(PuzzleRequest(listOf("sol", "río"), rows = 6, cols = 6, position = Position.MIXED, seed = 3))
-        val expected = "6×6  seed 3  engine 0.4.0\n\nS - - - - -\n- O Í R - -\n- - L - - -\n- - - - - -\n- - - - - -\n- - - - - -\n\nWords: sol, río"
+        val expected = "6×6  seed 3  engine 0.5.0\n\nS - - - - -\n- O Í R - -\n- - L - - -\n- - - - - -\n- - - - - -\n- - - - - -\n\nWords: sol, río"
         assertEquals(expected, p.render())
         val solution = p.solution()
         assertEquals(6, solution.lines().size)
@@ -121,7 +121,7 @@ class LettrasTest {
     fun `uses the bytecode compiler on the JVM`() = assertTrue(lettras.isCompiled)
 
     @Test
-    fun `reports the engine version`() = assertEquals("0.4.0", lettras.engineVersion)
+    fun `reports the engine version`() = assertEquals("0.5.0", lettras.engineVersion)
 
     @Test
     fun `is safe to call from many threads`() {
@@ -257,7 +257,7 @@ class LettrasTest {
     fun `stylize gives every style by default, several on request, and classic strips accents`() {
         val all = lettras.stylize("Hola")
         assertEquals(22, all.results.size)
-        assertEquals("0.4.0", all.engineVersion)
+        assertEquals("0.5.0", all.engineVersion)
         assertEquals(listOf("bold", "script"), lettras.stylize("Hola", listOf("bold", "script")).results.map { it.id })
         val classic = lettras.stylize("piña", style = "bold", classic = true).results.single()
         assertEquals("𝐩𝐢𝐧𝐚", classic.text)
@@ -283,5 +283,30 @@ class LettrasTest {
         assertEquals(text, lettras.unstyle(lettras.stylize(text, style = "bold").results.single().text))
         assertEquals(22, lettras.listStyles().size)
         assertEquals("bold", lettras.listStyles().first().id)
+    }
+
+    @Test
+    fun `crossword gives puzzle and solution matrices with numbered clues`() {
+        val words = listOf("gato", "perro", "mono", "cebra", "oso", "rata", "toro")
+        val c = lettras.crossword(words.map { it to "clue $it" }, rows = 11, seed = 3)
+        assertEquals(c.rows, c.puzzle.size)
+        assertEquals(c.puzzle.size, c.solution.size)
+        assertTrue(c.placements.size >= 4)
+        for (p in c.placements) {
+            assertTrue(p.clue.startsWith("clue "))
+            assertTrue(c.puzzle[p.r][p.c].split("/").contains(p.number.toString()))
+        }
+        assertContains(c.clues(), "Across")
+        assertEquals(c, lettras.crossword(words.map { it to "clue $it" }, rows = 11, seed = 3))
+    }
+
+    @Test
+    fun `sudoku is unique and solveSudoku agrees`() {
+        val s = lettras.sudoku(size = 9, difficulty = 2, seed = 5)
+        assertEquals(9, s.puzzle.size)
+        val r = lettras.solveSudoku(s.puzzle)
+        assertTrue(r.solved && r.unique)
+        assertEquals(s.solution, r.solution)
+        assertFailsWith<LettrasException> { lettras.sudoku(size = 7) }
     }
 }

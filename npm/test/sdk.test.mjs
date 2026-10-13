@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { test } from 'node:test';
-import { findBlocked, generate, listStyles, render, stylize, unstyle } from '../src/index.js';
+import { crossword, findBlocked, generate, listStyles, render, solveSudoku, stylize, sudoku, unstyle } from '../src/index.js';
 
 const cli = new URL('../bin/lettras.js', import.meta.url).pathname;
 const run = (...args) => execFileSync('node', [cli, ...args], { encoding: 'utf8' });
@@ -109,8 +109,8 @@ test('CLI --random fills the grid; --accents off keeps it plain', () => {
 });
 
 test('reports the real engine version', () => {
-  assert.equal(generate({ words: ['sol'], rows: 6, cols: 6 }).engineVersion, '0.4.0');
-  assert.equal(fill([['-']]).engineVersion, '0.4.0');
+  assert.equal(generate({ words: ['sol'], rows: 6, cols: 6 }).engineVersion, '0.5.0');
+  assert.equal(fill([['-']]).engineVersion, '0.5.0');
 });
 
 test('a letter or digit cannot be the empty marker; oversized input is rejected', () => {
@@ -149,7 +149,7 @@ test('findBlocked finds a word in any direction and fill keeps blocked words out
 test('stylize: every style by default, accents kept as base letter plus combining mark', () => {
   const out = stylize('piña');
   assert.equal(out.results.length, 22);
-  assert.equal(out.engineVersion, '0.4.0');
+  assert.equal(out.engineVersion, '0.5.0');
   const bold = out.results.find((r) => r.id === 'bold');
   assert.equal(bold.text, '𝐩𝐢𝐧\u0303𝐚'); // styled n + U+0303, not a precomposed ñ
   assert.deepEqual(bold.notNative, ['ñ']);
@@ -187,4 +187,29 @@ test('unstyle goes back to plain text, accents included; listStyles lists all 22
   }
   assert.equal(listStyles().length, 22);
   assert.deepEqual(Object.keys(listStyles()[0]).sort(), ['category', 'id', 'label']);
+});
+
+test('crossword returns puzzle and solution matrices with numbers and clues', () => {
+  const entries = ['gato', 'perro', 'mono', 'cebra', 'oso', 'rata', 'toro'].map((word) => ({ word, clue: `clue ${word}` }));
+  const out = crossword({ entries, rows: 11, cols: 11, seed: 3 });
+  assert.equal(out.puzzle.length, out.rows);
+  assert.ok(crossword({ entries, rows: 11, seed: 3 }).cols > 0); // cols defaults to rows
+  assert.equal(out.solution[0].length, out.cols);
+  assert.ok(out.placements.length >= 4);
+  for (const p of out.placements) {
+    assert.ok(p.clue.startsWith('clue '));
+    const cell = out.puzzle[p.r][p.c];
+    assert.ok(cell.split('/').includes(String(p.number)), `${p.word}: ${cell}`);
+  }
+  assert.deepEqual(crossword({ entries, rows: 11, cols: 11, seed: 3 }), out);
+});
+
+test('sudoku is unique and solveSudoku agrees', () => {
+  const s = sudoku({ size: 9, difficulty: 2, seed: 5 });
+  assert.equal(s.puzzle.length, 9);
+  const r = solveSudoku(s.puzzle);
+  assert.equal(r.solved, true);
+  assert.equal(r.unique, true);
+  assert.deepEqual(r.solution, s.solution);
+  assert.throws(() => sudoku({ size: 7 }));
 });

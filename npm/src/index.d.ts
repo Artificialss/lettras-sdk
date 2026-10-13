@@ -1,5 +1,7 @@
 import type {
   BlockedHit,
+  CrosswordInput,
+  CrosswordOutput,
   FillInput,
   FillOutput,
   FindBlockedInput,
@@ -8,13 +10,17 @@ import type {
   Placement,
   Position,
   StyleInfo,
+  SudokuInput,
+  SudokuOutput,
+  SudokuSolveInput,
+  SudokuSolveOutput,
   StyledPart,
   StyledResult,
   StylizeInput,
   StylizeOutput,
 } from '../engine/index.js';
 
-export type { BlockedHit, FillInput, FillOutput, FindBlockedInput, GenerateInput, GenerateOutput, Placement, Position, StyleInfo, StyledPart, StyledResult, StylizeInput, StylizeOutput };
+export type { BlockedHit, CrosswordInput, CrosswordOutput, SudokuInput, SudokuOutput, SudokuSolveInput, SudokuSolveOutput, FillInput, FillOutput, FindBlockedInput, GenerateInput, GenerateOutput, Placement, Position, StyleInfo, StyledPart, StyledResult, StylizeInput, StylizeOutput };
 
 /** Options for {@link fill}: everything in {@link FillInput} except the grid. */
 export type FillOptions = Omit<FillInput, 'grid'>;
@@ -53,3 +59,15 @@ export function unstyle(text: string): string;
 
 /** The available styles in display order (`id`, English `label`, `category`). */
 export function listStyles(): StyleInfo[];
+
+/**
+ * A crossword (crucigrama) from words with clues: `puzzle` (blank `-`, word numbers, `0` on other letter cells, `a/d` when an
+ * across and a down word start in the same cell) and `solution` (letters), plus `placements` with numbers and clues.
+ */
+export function crossword(input: Omit<CrosswordInput, 'cols'> & { cols?: number }): CrosswordOutput;
+
+/** A sudoku with exactly one solution (sizes 4, 6, 9, 12, 16; difficulty 1 to 4). `0` is an empty cell. */
+export function sudoku(input?: SudokuInput): SudokuOutput;
+
+/** Solves a sudoku grid and says whether the solution is unique. Throws on a bad grid. */
+export function solveSudoku(puzzle: number[][] | SudokuSolveInput): SudokuSolveOutput;

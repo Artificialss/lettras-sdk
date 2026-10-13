@@ -40,6 +40,15 @@ internal class Engine(wasm: ByteArray, useCompiler: Boolean = true) {
     /** Styled-text JSON for a request, or throws [LettrasException] with the engine's message. */
     fun stylize(requestJson: String): String = call("lettras_stylize", requestJson)
 
+    /** Crossword JSON for a request (entries with clues, rows, cols...), or throws [LettrasException] with the engine's message. */
+    fun crossword(requestJson: String): String = call("lettras_crossword", requestJson)
+
+    /** Sudoku puzzle JSON for a request (`size`, `difficulty`, `seed`), or throws [LettrasException]. */
+    fun sudoku(requestJson: String): String = call("lettras_sudoku", requestJson)
+
+    /** Solved-sudoku JSON for a `{ "puzzle": [[...]] }` request, or throws [LettrasException]. */
+    fun solveSudoku(requestJson: String): String = call("lettras_sudoku_solve", requestJson)
+
     /** `{ "text" }` JSON in and out: styled characters back to plain ones. */
     fun unstyle(requestJson: String): String = call("lettras_unstyle", requestJson)
 

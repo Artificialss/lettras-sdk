@@ -2,7 +2,7 @@
 
 # lettras
 
-Word-search generator and Unicode text styles for **Spanish, English, Portuguese, French, German and Italian**, with native
+Word-search, crossword (crucigrama) and sudoku generators, plus Unicode text styles, for **Spanish, English, Portuguese, French, German and Italian**, with native
 accented letters kept (one cell each in a grid, one styled letter plus its accent in text). Runs locally (WebAssembly): no
 network, no API key. Library and CLI.
 
@@ -33,6 +33,22 @@ console.log(done.grid.map((row) => row.join(' ')).join('\n'));
 ```bash
 npx lettras --words gato,perro,piña --rows 9 --cols 12 --position mixed --random --accents on
 ```
+
+## Crossword and sudoku
+
+```js
+import { crossword, sudoku, solveSudoku } from 'lettras';
+
+const c = crossword({ entries: [{ word: 'gato', clue: 'Maúlla' }, { word: 'oso', clue: 'Duerme en invierno' }, { word: 'sol', clue: 'Brilla de día' }], rows: 13, seed: 2 });
+c.puzzle;     // '-' blank · word number on a word's first cell ('3', or '3/4' when an across and a down word start there) · '0' on other letter cells
+c.solution;   // the same matrix with the letters
+c.placements; // number, word, clue, direction, r, c, length
+
+const s = sudoku({ size: 9, difficulty: 2, seed: 5 }); // exactly one solution; 0 = empty cell
+solveSudoku(s.puzzle); // { solution, solved: true, unique: true }
+```
+
+Full options: [crossword](https://github.com/Artificialss/lettras-sdk/blob/main/docs/CROSSWORD.md) · [sudoku](https://github.com/Artificialss/lettras-sdk/blob/main/docs/SUDOKU.md).
 
 ## Options
 

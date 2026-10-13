@@ -94,6 +94,30 @@ public class Lettras {
     public fun listStyles(): List<StyleInfo> =
         json.decodeFromString(StyleList.serializer(), guard { engine.listStyles() }).styles
 
+    /**
+     * Lays out a crossword (crucigrama) from words and clues: one connected shape, cropped to what it uses. The result has a
+     * [CrosswordResult.puzzle] matrix (`-` blank, word numbers on the first cells, `0` elsewhere) and a [CrosswordResult.solution]
+     * matrix. Throws [LettrasException] for invalid input.
+     */
+    public fun crossword(request: CrosswordRequest): CrosswordResult =
+        json.decodeFromString(CrosswordResult.serializer(), guard { engine.crossword(json.encodeToString(CrosswordRequest.serializer(), request)) })
+
+    /** Shorthand for [crossword] with `word to clue` pairs. */
+    public fun crossword(entries: List<Pair<String, String>>, rows: Int, cols: Int = rows, seed: Long? = null): CrosswordResult =
+        crossword(CrosswordRequest(entries = entries.map { CrosswordEntry(it.first, it.second) }, rows = rows, cols = cols, seed = seed))
+
+    /** A sudoku with exactly one solution (sizes 4, 6, 9, 12, 16; difficulty 1 to 4). Throws [LettrasException] for invalid input. */
+    public fun sudoku(request: SudokuRequest = SudokuRequest()): SudokuResult =
+        json.decodeFromString(SudokuResult.serializer(), guard { engine.sudoku(json.encodeToString(SudokuRequest.serializer(), request)) })
+
+    /** Shorthand for [sudoku]. */
+    public fun sudoku(size: Int, difficulty: Int = 2, seed: Long? = null): SudokuResult =
+        sudoku(SudokuRequest(size = size, difficulty = difficulty, seed = seed))
+
+    /** Solves a sudoku grid (0 = empty) and says whether the answer is the only one. Throws [LettrasException] for a bad grid. */
+    public fun solveSudoku(puzzle: List<List<Int>>): SudokuSolution =
+        json.decodeFromString(SudokuSolution.serializer(), guard { engine.solveSudoku(json.encodeToString(SudokuSolveRequest.serializer(), SudokuSolveRequest(puzzle))) })
+
     /** Runs an engine call, turning unexpected failures into [LettrasException]. */
     private fun guard(call: () -> String): String =
         try {

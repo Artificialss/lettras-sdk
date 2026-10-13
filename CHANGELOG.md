@@ -2,6 +2,14 @@
 
 All three distributions (npm `lettras`, Maven `org.lettras.artificialss:lettras`, the MCP server) are versioned together.
 
+## 0.5.0
+- **Crossword (crucigrama):** `crossword({ entries, rows, cols, ... })` returns a `puzzle` matrix (word numbers, `0`, `-`, and `a/d` where an
+  across and a down word start in the same cell), a `solution` matrix and `placements` with the clue of each word. npm, Kotlin and MCP.
+  See `docs/CROSSWORD.md`.
+- **Sudoku:** `sudoku({ size, difficulty, seed })` (unique solution) and `solveSudoku(grid)`. npm, Kotlin and MCP. See `docs/SUDOKU.md`.
+- MCP: new tools `crossword`, `sudoku` and `solve_sudoku`, free with no usage limit (they do not use up puzzles or fills).
+- Engine 0.5.0 (`engineVersion`); word searches, fills and styles for the same seed are identical to 0.4.0.
+
 ## 0.4.1 (npm only)
 - npm package page: the README now introduces the Unicode text styles (`stylize`, `unstyle`, `listStyles`), shows the examples and the Artificialss credit. No code change: Maven stays at 0.4.0 and the MCP server at 0.4.0.
 
