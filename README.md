@@ -4,7 +4,7 @@
 
   # Lettras SDK
 
-  **Word-search puzzles and Unicode text styles in six languages, with every accent intact.**
+  **Word searches, crosswords, sudoku and Unicode text styles in six languages, with every accent intact.**
 
 </div>
 
@@ -20,7 +20,7 @@
 
 Developer tools for [Lettras](https://lettras.org), the free word-puzzle platform. Generate word searches from any
 word list in **Spanish, English, Portuguese, French, German and Italian**, with native letters (Ñ, Ç, Ã, Ä, ẞ, È…)
-kept as one cell each, from your own code, a terminal, or an AI assistant.
+kept as one cell each, from your own code, a terminal, or an AI assistant. Besides word searches there are crosswords (crucigramas), sudoku and Unicode text styles.
 
 | Tool | What it is | Install / connect | Source |
 | --- | --- | --- | --- |
@@ -37,7 +37,7 @@ kept as one cell each, from your own code, a terminal, or an AI assistant.
 - [Kotlin library](#kotlin-library)
 - [MCP server](#mcp-server)
 - [Text styles](#text-styles)
-- [Crossword and sudoku (coming in 0.5.0)](#crossword-and-sudoku-coming-in-050)
+- [Crossword and sudoku](#crossword-and-sudoku)
 - [How puzzles are built](#how-puzzles-are-built)
 - [Architecture and licensing](#architecture-and-licensing)
 - [Repository layout](#repository-layout)
@@ -228,6 +228,9 @@ claude mcp add --transport http lettras https://mcp.lettras.org/mcp
 | `fill_word_search` | Complete a puzzle: takes the grid from `generate_word_search` (empty cells `-`) and fills them with random letters in the chosen `lang`, with `accents` on or off. Pass the puzzle's `words` so the filler never creates an extra copy. Does not use up the puzzle limit; it has its own, larger one. |
 | `stylize_text` | Text in Unicode styles (bold, italic, script, fraktur, circled, strikethrough... 22 in all) that **keep accents**. `style` is one id, several, or omitted for all; `classic` strips accents first. Reports in `notNative` and `parts[].missing` what a style cannot draw (ß, Æ, Œ, Ø, non-Latin scripts, accents that only exist as combining marks), so you can warn the user. **No usage limit.** |
 | `list_styles` | The style ids `stylize_text` accepts, with an English name and a category. No usage limit. |
+| `crossword` | A crossword (crucigrama) from `entries` (`{ word, clue }`) inside `rows` x `cols`: returns a `puzzle` matrix (`-` blank, word numbers, `0`, and `a/d` such as `3/4` where an across and a down word start in the same cell), a `solution` matrix and `placements` with the clues. No usage limit. See [docs/CROSSWORD.md](docs/CROSSWORD.md). |
+| `sudoku` | A sudoku with exactly one solution: `size` 4, 6, 9, 12 or 16, `difficulty` 1 to 4, `seed`. No usage limit. |
+| `solve_sudoku` | Solves a grid (`0` = empty) and says whether the solution is unique. No usage limit. See [docs/SUDOKU.md](docs/SUDOKU.md). |
 | `list_languages` | The supported languages and the native letters each adds to its grid. |
 
 Invalid arguments come back as a tool error written for the model to act on (for example
@@ -240,7 +243,7 @@ Invalid arguments come back as a tool error written for the model to act on (for
 | `generate_word_search`, **small**: up to **10×10** with **at most 10 words** | **Unlimited.** Never counted. |
 | `generate_word_search`, **larger**: a bigger grid (up to 30×30) or more than 10 words | **5 puzzles per client, in total, forever** (there is no daily reset). |
 | `fill_word_search` | 100 calls per client, separate from the puzzles. |
-| `stylize_text`, `list_styles`, `list_languages` | **No limit.** |
+| `stylize_text`, `list_styles`, `crossword`, `sudoku`, `solve_sudoku`, `list_languages` | **No limit.** |
 
 After a limit the tool answers with *"Free limit reached… Visit https://lettras.org"*. Invalid requests never count.
 
@@ -377,9 +380,9 @@ stylize('Hola').results.length;                                 // 22
 **Kotlin and MCP.** `lettras.stylize("piña", style = "bold")` returns the same results; in an MCP client, ask for *"write 'Lettras ejemplo' in bold and script"*
 and the assistant calls `stylize_text` with `{ "text": "Lettras ejemplo", "style": ["bold", "script"] }`.
 
-## Crossword and sudoku (coming in 0.5.0)
+## Crossword and sudoku
 
-Two more generators from the same engine, in the next release:
+Two more generators from the same engine (since 0.5.0), in npm, Kotlin and the MCP server:
 
 - **Crossword (crucigrama):** words and clues in, a connected crossword out. The result has a `puzzle` matrix (the clue number on the
   first cell of each word, `0` on the other letter cells, `-` for blanks, and `a/d` such as `1/2` when an across and a down word start in

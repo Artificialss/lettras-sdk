@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "org.lettras/word-search",
   "title": "Lettras word search",
-  "description": "Create word-search puzzles in 6 languages (es, en, pt, fr, de, it) with native accented letters, and write text in Unicode styles that keep accents.",
+  "description": "Create word-search puzzles in 6 languages (es, en, pt, fr, de, it) with native accented letters, make crosswords and sudoku, and write text in Unicode styles that keep accents.",
   "version": "0.5.0",
   "icons": [
     { "src": "https://raw.githubusercontent.com/Artificialss/lettras-sdk/main/assets/png/lettras-icon-512.png", "mimeType": "image/png", "sizes": ["512x512"] },

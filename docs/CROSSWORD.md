@@ -1,6 +1,6 @@
 # Crossword (crucigrama)
 
-> **Coming in 0.5.0.** This page describes the next release. It is not in the published packages yet.
+> Available since 0.5.0 in npm, Kotlin and the MCP server.
 
 Builds a crossword from words and clues, inside a maximum size. Every word crosses another, so the result is one connected shape, and
 the grid is cropped to what it uses. Words that do not fit are returned in `unplaced`. The same input and `seed` always give the same grid.
@@ -87,4 +87,19 @@ column of the first letter, from 0) and `length`. Draw the clue lists from it: t
 Speed: a 13x13 grid with 22 words takes about 10 ms at 30 attempts. The layout is free-form (about half of the grid is filled), not a
 dense newspaper grid.
 
-Also in Kotlin (`Lettras.crossword(...)`) and as the MCP tool `crossword`.
+## Kotlin
+
+```kotlin
+val c = Lettras().crossword(listOf("gato" to "Maúlla", "oso" to "Duerme en invierno", "sol" to "Brilla de día"), rows = 13, seed = 2)
+c.puzzle     // List<List<String>>: "-", "1", "2/3", "0"
+c.solution   // the same matrix with letters
+c.placements // number, word, clue, direction ("across"/"down"), r, c, length
+println(c.clues()) // Across / Down clue list as text
+```
+
+`CrosswordRequest(entries, rows, cols, seed, attempts, classicMode, block, open)` gives the full set of options. Invalid input throws `LettrasException`.
+
+## MCP
+
+The tool `crossword` takes `entries` (2 to 60 `{ word, clue }`), `rows` (5 to 30), optional `cols`, `seed`, `attempts` (up to 60), `classicMode`, `block`, `open`, and
+returns both matrices as text and as structured content. It is free and has no usage limit.

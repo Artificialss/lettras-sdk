@@ -1,6 +1,6 @@
 # Sudoku
 
-> **Coming in 0.5.0.** This page describes the next release. It is not in the published packages yet.
+> Available since 0.5.0 in npm, Kotlin and the MCP server.
 
 Builds a sudoku with **exactly one solution**, and solves any sudoku. Same `seed`, same puzzle.
 
@@ -31,4 +31,13 @@ stop taking clues out after about half a second, so their hardest levels keep a 
 `solveSudoku(grid)` takes a square grid (the sizes above, `0` for empty) and returns `{ solution, solved, unique }`. A number repeated
 in a row, column or box is an error.
 
-Also in Kotlin (`Lettras.sudoku(...)`, `Lettras.solveSudoku(...)`) and as the MCP tools `sudoku` and `solve_sudoku`.
+## Kotlin
+
+```kotlin
+val s = Lettras().sudoku(size = 9, difficulty = 2, seed = 5)   // SudokuResult: puzzle, solution (List<List<Int>>), givens...
+val r = Lettras().solveSudoku(s.puzzle)                        // SudokuSolution: solution, solved, unique
+```
+
+## MCP
+
+The tools `sudoku` (`size`, `difficulty`, `seed`) and `solve_sudoku` (`puzzle`) are free and have no usage limit.

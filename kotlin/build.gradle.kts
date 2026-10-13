@@ -53,7 +53,7 @@ mavenPublishing {
 
     pom {
         name.set("Lettras")
-        description.set("Word-search generator and Unicode text styles for es, en, pt, fr, de and it, with native accented letters kept. Runs locally on the JVM and Android.")
+        description.set("Word-search, crossword and sudoku generators and Unicode text styles for es, en, pt, fr, de and it, with native accented letters kept. Runs locally on the JVM and Android.")
         inceptionYear.set("2026")
         url.set("https://github.com/Artificialss/lettras-sdk")
         licenses {

@@ -2,7 +2,7 @@
 
 # Lettras for Kotlin
 
-Word-search generator and Unicode text styles for **Spanish, English, Portuguese, French, German and Italian**, with native
+Word-search, crossword (crucigrama) and sudoku generators, plus Unicode text styles, for **Spanish, English, Portuguese, French, German and Italian**, with native
 accented letters kept. Kotlin library for the **JVM and Android**. It runs the same compiled engine as the npm package
 and the MCP server, locally: no network, no API key, and the same seed gives the same puzzle on every platform.
 
@@ -99,6 +99,11 @@ class Lettras {
     fun stylize(text: String, style: String? = null, classic: Boolean = false): StylizeResult
     fun stylize(text: String, styles: List<String>, classic: Boolean = false): StylizeResult
     fun stylize(request: StylizeRequest): StylizeResult
+    fun crossword(request: CrosswordRequest): CrosswordResult
+    fun crossword(entries: List<Pair<String, String>>, rows: Int, cols: Int = rows, seed: Long? = null): CrosswordResult
+    fun sudoku(request: SudokuRequest = SudokuRequest()): SudokuResult
+    fun sudoku(size: Int, difficulty: Int = 2, seed: Long? = null): SudokuResult
+    fun solveSudoku(puzzle: List<List<Int>>): SudokuSolution
     fun unstyle(text: String): String
     fun listStyles(): List<StyleInfo>
     val engineVersion: String
@@ -131,6 +136,13 @@ val bold = lettras.stylize("piña", style = "bold").results.single()
 println(bold.text)      // 𝐩𝐢𝐧̃𝐚
 println(bold.notNative) // [ñ]
 println(lettras.unstyle(bold.text)) // piña
+```
+
+**Crossword and sudoku.** `crossword` takes words with clues and returns `puzzle` (`-` blank, the word number on a word's first cell, `3/4` when an across and a down word start in the same cell, `0` on the other letter cells), `solution` (letters) and `placements` with the clues; `clues()` formats them as text. `sudoku` returns a puzzle with exactly one solution (`size` 4, 6, 9, 12, 16; `difficulty` 1 to 4) and `solveSudoku` solves any grid and reports `unique`. Details: [docs/CROSSWORD.md](../docs/CROSSWORD.md), [docs/SUDOKU.md](../docs/SUDOKU.md).
+
+```kotlin
+val c = lettras.crossword(listOf("gato" to "Maúlla", "oso" to "Duerme en invierno", "sol" to "Brilla de día"), rows = 13, seed = 2)
+val s = lettras.sudoku(size = 9, difficulty = 2, seed = 5)
 ```
 
 **`Puzzle`**
