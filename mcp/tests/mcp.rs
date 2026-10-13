@@ -48,7 +48,7 @@ async fn lists_tools_with_schemas() {
     let r = rpc(json!({ "jsonrpc": "2.0", "id": 1, "method": "tools/list" })).await.unwrap();
     let tools = r["result"]["tools"].as_array().unwrap();
     let names: Vec<_> = tools.iter().map(|t| t["name"].as_str().unwrap()).collect();
-    assert_eq!(names, ["generate_word_search", "fill_word_search", "stylize_text", "list_styles", "list_languages"]);
+    assert_eq!(names, ["generate_word_search", "fill_word_search", "stylize_text", "list_styles", "crossword", "sudoku", "solve_sudoku", "list_languages"]);
     assert_eq!(tools[0]["inputSchema"]["required"], json!(["words", "rows", "cols"]));
 }
 
@@ -434,7 +434,7 @@ async fn stylizes_text_keeping_accents_and_reporting_what_a_style_cannot_draw() 
     let r = rpc(style_call(json!({ "text": "piña", "style": "bold" }))).await.unwrap();
     assert_eq!(r["result"]["isError"], false, "{r}");
     let out = &r["result"]["structuredContent"];
-    assert_eq!(out["engineVersion"], "0.4.0");
+    assert_eq!(out["engineVersion"], "0.5.0");
     assert_eq!(out["results"][0]["text"], "𝐩𝐢𝐧\u{303}𝐚"); // styled n + combining tilde, not a precomposed ñ
     assert_eq!(out["results"][0]["notNative"], json!(["ñ"]));
     assert!(out["results"][0]["parts"].as_array().unwrap().iter().any(|p| p["missing"] == true));
@@ -530,4 +530,41 @@ async fn anything_over_the_free_size_uses_the_limit() {
         assert_eq!(r["result"]["isError"], true, "{rows}x{cols} with {words} words must be counted");
         assert!(r["result"]["content"][0]["text"].as_str().unwrap().contains("always free"));
     }
+}
+
+// ---- crossword / sudoku ----
+
+async fn tool(name: &str, args: Value) -> Value {
+    rpc(json!({ "jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": { "name": name, "arguments": args } })).await.unwrap()["result"].clone()
+}
+
+#[tokio::test]
+async fn crossword_returns_puzzle_solution_and_clues() {
+    let entries: Vec<Value> = ["gato", "perro", "mono", "cebra", "oso", "rata", "toro"].iter().map(|w| json!({ "word": w, "clue": format!("clue {w}") })).collect();
+    let res = tool("crossword", json!({ "entries": entries, "rows": 11, "cols": 11, "seed": 3 })).await;
+    assert_eq!(res["isError"], false);
+    let s = &res["structuredContent"];
+    assert_eq!(s["puzzle"].as_array().unwrap().len(), s["solution"].as_array().unwrap().len());
+    assert!(s["placements"].as_array().unwrap().len() >= 4);
+    assert!(s["placements"][0]["clue"].as_str().unwrap().starts_with("clue "));
+}
+
+#[tokio::test]
+async fn crossword_rejects_bad_input() {
+    let res = tool("crossword", json!({ "entries": [{ "word": "a" }, { "word": "gato" }], "rows": 9 })).await;
+    assert_eq!(res["isError"], true);
+    let res = tool("crossword", json!({ "entries": [{ "word": "gato" }, { "word": "perro" }], "rows": 9, "extra": 1 })).await;
+    assert_eq!(res["isError"], true);
+}
+
+#[tokio::test]
+async fn sudoku_generates_and_solves() {
+    let res = tool("sudoku", json!({ "size": 9, "difficulty": 2, "seed": 5 })).await;
+    assert_eq!(res["isError"], false);
+    let puzzle = res["structuredContent"]["puzzle"].clone();
+    let solved = tool("solve_sudoku", json!({ "puzzle": puzzle })).await;
+    assert_eq!(solved["structuredContent"]["solved"], true);
+    assert_eq!(solved["structuredContent"]["unique"], true);
+    assert_eq!(solved["structuredContent"]["solution"], res["structuredContent"]["solution"]);
+    assert_eq!(tool("sudoku", json!({ "size": 7 })).await["isError"], true);
 }

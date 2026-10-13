@@ -8,6 +8,8 @@ const LANGS: [&str; 6] = ["es", "en", "pt", "fr", "de", "it"];
 const POSITIONS: [&str; 3] = ["horizontal", "vertical", "mixed"];
 const FILL_ALLOWED: [&str; 6] = ["grid", "lang", "accents", "seed", "words", "empty"];
 const STYLE_ALLOWED: [&str; 3] = ["text", "style", "classic"];
+const CROSSWORD_ALLOWED: [&str; 8] = ["entries", "rows", "cols", "seed", "attempts", "classicMode", "block", "open"];
+const SUDOKU_ALLOWED: [&str; 3] = ["size", "difficulty", "seed"];
 const ALLOWED: [&str; 9] = ["words", "rows", "cols", "position", "difficulty", "clustering", "seed", "lang", "classicMode"];
 
 /// Tool definitions returned by `tools/list`.
@@ -78,6 +80,51 @@ pub fn list() -> Value {
             "title": "List text styles",
             "description": "The Unicode text styles stylize_text offers, with the id to pass, an English name and a category (bold-italic, sans, script, gothic, mono, enclosed, decoration, other).",
             "inputSchema": { "type": "object", "properties": {}, "additionalProperties": false }
+        },
+        {
+            "name": "crossword",
+            "title": "Generate a crossword (crucigrama)",
+            "description": "Lays out a crossword from words with clues. Returns two matrices of the same size: puzzle (the game position: \"-\" is a blank cell, a word's number is on its first cell, \"0\" marks the other cells where a letter goes, and \"a/d\" such as \"3/4\" appears when an across word and a down word start in the same cell) and solution (the same matrix with the correct letters, one grapheme per cell). placements lists every word with its number, clue, direction (across/down) and start cell; unplaced lists words that did not fit. Offer more words than you need: the engine keeps the best layout it finds. Native letters (Ñ, Ç, ẞ…) stay one cell each. Free, no usage limit. The same seed gives the same crossword.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "entries": { "type": "array", "items": { "type": "object", "properties": { "word": { "type": "string", "minLength": 2, "maxLength": 30 }, "clue": { "type": "string", "maxLength": 200 } }, "required": ["word"], "additionalProperties": false }, "minItems": 2, "maxItems": 60, "description": "Words with their clues." },
+                    "rows": { "type": "integer", "minimum": 5, "maximum": 30, "description": "Largest height; the result is cropped to what it uses." },
+                    "cols": { "type": "integer", "minimum": 5, "maximum": 30, "description": "Largest width. Default: rows." },
+                    "seed": { "type": "integer", "minimum": 0, "description": "Repeatable crossword." },
+                    "attempts": { "type": "integer", "minimum": 1, "maximum": 60, "description": "Layouts to try (default 30); more attempts, denser crossword." },
+                    "classicMode": { "type": "boolean", "description": "Strip accents (ñ becomes N)." },
+                    "block": { "type": "string", "maxLength": 4, "description": "Marker of blank cells. Default \"-\"." },
+                    "open": { "type": "string", "maxLength": 4, "description": "Marker of letter cells that do not start a word in puzzle. Default \"0\"." }
+                },
+                "required": ["entries", "rows"],
+                "additionalProperties": false
+            }
+        },
+        {
+            "name": "sudoku",
+            "title": "Generate a sudoku",
+            "description": "Creates a sudoku with exactly one solution. Returns puzzle (0 = empty cell) and solution. Sizes 4, 6, 9 (default), 12 and 16; difficulty 1 easy (most clues) to 4 expert. Free, no usage limit. The same seed gives the same sudoku.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "size": { "type": "integer", "enum": [4, 6, 9, 12, 16], "description": "Side of the grid. Default 9." },
+                    "difficulty": { "type": "integer", "minimum": 1, "maximum": 4, "description": "1 easy to 4 expert. Default 2." },
+                    "seed": { "type": "integer", "minimum": 0, "description": "Repeatable sudoku." }
+                },
+                "additionalProperties": false
+            }
+        },
+        {
+            "name": "solve_sudoku",
+            "title": "Solve a sudoku",
+            "description": "Solves a sudoku grid (0 = empty cell; sizes 4, 6, 9, 12, 16) and says whether the solution is the only one. Free, no usage limit.",
+            "inputSchema": {
+                "type": "object",
+                "properties": { "puzzle": { "type": "array", "items": { "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 16 }, "minItems": 4, "maxItems": 16 }, "minItems": 4, "maxItems": 16, "description": "Rows of numbers, 0 for empty cells." } },
+                "required": ["puzzle"],
+                "additionalProperties": false
+            }
         },
         {
             "name": "list_languages",
@@ -245,6 +292,158 @@ async fn stylize(args: &Value, backend: &dyn PuzzleBackend) -> Value {
     }
 }
 
+fn seed_ok(obj: &serde_json::Map<String, Value>) -> Result<(), String> {
+    if obj.get("seed").is_some_and(|v| !v.as_u64().is_some_and(|n| n <= u64::from(u32::MAX))) {
+        return Err("seed: an integer from 0 to 4294967295".into());
+    }
+    Ok(())
+}
+
+/// Checks `crossword` arguments. Returns the first problem, in words a model can act on.
+pub fn validate_crossword(args: &Value) -> Result<(), String> {
+    let obj = args.as_object().ok_or("arguments must be an object")?;
+    let entries = obj.get("entries").and_then(Value::as_array).ok_or("entries: an array of 2 to 60 { word, clue } objects is required")?;
+    if !(2..=60).contains(&entries.len()) {
+        return Err("entries: 2 to 60 words".into());
+    }
+    for e in entries {
+        let e = e.as_object().ok_or("entries: each entry is an object { word, clue }")?;
+        if !e.get("word").and_then(Value::as_str).is_some_and(|w| (2..=30).contains(&w.chars().count())) {
+            return Err("entries: each word is a string of 2 to 30 characters".into());
+        }
+        if e.get("clue").is_some_and(|c| !c.as_str().is_some_and(|c| c.chars().count() <= 200)) {
+            return Err("entries: each clue is a string of up to 200 characters".into());
+        }
+        if let Some(unknown) = e.keys().find(|k| *k != "word" && *k != "clue") {
+            return Err(format!("entries: unknown field {unknown}"));
+        }
+    }
+    if !obj.get("rows").is_some_and(|v| int_in(v, 5, 30)) {
+        return Err("rows: an integer from 5 to 30 is required".into());
+    }
+    if obj.get("cols").is_some_and(|v| !int_in(v, 5, 30)) {
+        return Err("cols: an integer from 5 to 30".into());
+    }
+    if obj.get("attempts").is_some_and(|v| !int_in(v, 1, 60)) {
+        return Err("attempts: an integer from 1 to 60".into());
+    }
+    if obj.get("classicMode").is_some_and(|v| !v.is_boolean()) {
+        return Err("classicMode: true or false".into());
+    }
+    for key in ["block", "open"] {
+        if obj.get(key).is_some_and(|v| !v.as_str().is_some_and(|m| (1..=4).contains(&m.chars().count()))) {
+            return Err(format!("{key}: a short string"));
+        }
+    }
+    seed_ok(obj)?;
+    if let Some(unknown) = obj.keys().find(|k| !CROSSWORD_ALLOWED.contains(&k.as_str())) {
+        return Err(format!("unknown argument: {unknown}"));
+    }
+    Ok(())
+}
+
+/// Checks `sudoku` arguments.
+pub fn validate_sudoku(args: &Value) -> Result<(), String> {
+    let obj = args.as_object().ok_or("arguments must be an object")?;
+    if obj.get("size").is_some_and(|v| ![4, 6, 9, 12, 16].iter().any(|n| v.as_i64() == Some(*n))) {
+        return Err("size: 4, 6, 9, 12 or 16".into());
+    }
+    if obj.get("difficulty").is_some_and(|v| !int_in(v, 1, 4)) {
+        return Err("difficulty: an integer from 1 to 4".into());
+    }
+    seed_ok(obj)?;
+    if let Some(unknown) = obj.keys().find(|k| !SUDOKU_ALLOWED.contains(&k.as_str())) {
+        return Err(format!("unknown argument: {unknown}"));
+    }
+    Ok(())
+}
+
+/// Checks `solve_sudoku` arguments.
+pub fn validate_solve_sudoku(args: &Value) -> Result<(), String> {
+    let obj = args.as_object().ok_or("arguments must be an object")?;
+    let rows = obj.get("puzzle").and_then(Value::as_array).ok_or("puzzle: an array of rows is required")?;
+    if !(4..=16).contains(&rows.len()) {
+        return Err("puzzle: a square grid of 4 to 16 rows".into());
+    }
+    for r in rows {
+        let cells = r.as_array().ok_or("puzzle: every row is an array of numbers")?;
+        if cells.len() != rows.len() || !cells.iter().all(|c| int_in(c, 0, 16)) {
+            return Err("puzzle: square grid, numbers from 0 (empty) to 16".into());
+        }
+    }
+    if let Some(unknown) = obj.keys().find(|k| *k != "puzzle") {
+        return Err(format!("unknown argument: {unknown}"));
+    }
+    Ok(())
+}
+
+fn text_grid(m: &Value, sep: &str) -> String {
+    m.as_array()
+        .into_iter()
+        .flatten()
+        .map(|row| row.as_array().into_iter().flatten().map(|c| c.as_str().map_or_else(|| c.to_string(), str::to_string)).collect::<Vec<_>>().join(sep))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+async fn crossword(args: &Value, backend: &dyn PuzzleBackend) -> Value {
+    if let Err(e) = validate_crossword(args) {
+        return error_result(e);
+    }
+    let mut request = args.clone();
+    if request.get("cols").is_none() {
+        request["cols"] = request["rows"].clone();
+    }
+    match backend.crossword(request).await {
+        Ok(out) => {
+            let mut text = format!("Puzzle:\n{}\n\nSolution:\n{}\n", text_grid(&out["puzzle"], "\t"), text_grid(&out["solution"], " "));
+            for dir in ["across", "down"] {
+                text.push_str(&format!("\n{}:\n", if dir == "across" { "Across" } else { "Down" }));
+                for p in out["placements"].as_array().into_iter().flatten().filter(|p| p["direction"] == dir) {
+                    let clue = p["clue"].as_str().filter(|c| !c.is_empty()).or(p["word"].as_str()).unwrap_or("");
+                    text.push_str(&format!("{}. {} ({})\n", p["number"], clue, p["length"]));
+                }
+            }
+            if out["unplaced"].as_array().is_some_and(|a| !a.is_empty()) {
+                text.push_str("\nDid not fit: ");
+                text.push_str(&out["unplaced"].as_array().unwrap().iter().filter_map(Value::as_str).collect::<Vec<_>>().join(", "));
+            }
+            text_result(text, Some(out))
+        }
+        Err(e) => error_result(e),
+    }
+}
+
+async fn sudoku(args: &Value, backend: &dyn PuzzleBackend) -> Value {
+    if let Err(e) = validate_sudoku(args) {
+        return error_result(e);
+    }
+    match backend.sudoku(args.clone()).await {
+        Ok(out) => {
+            let text = format!("Sudoku {n}x{n}, {g} clues, one solution:\n{p}\n\nSolution:\n{s}", n = out["size"], g = out["givens"], p = text_grid(&out["puzzle"], " "), s = text_grid(&out["solution"], " "));
+            text_result(text, Some(out))
+        }
+        Err(e) => error_result(e),
+    }
+}
+
+async fn solve_sudoku(args: &Value, backend: &dyn PuzzleBackend) -> Value {
+    if let Err(e) = validate_solve_sudoku(args) {
+        return error_result(e);
+    }
+    match backend.solve_sudoku(args.clone()).await {
+        Ok(out) => {
+            let text = if out["solved"] == true {
+                format!("{}\n\n{}", text_grid(&out["solution"], " "), if out["unique"] == true { "The solution is unique." } else { "More than one solution exists; this is one of them." })
+            } else {
+                "This sudoku has no solution.".to_string()
+            };
+            text_result(text, Some(out))
+        }
+        Err(e) => error_result(e),
+    }
+}
+
 async fn list_styles(backend: &dyn PuzzleBackend) -> Value {
     match backend.list_styles().await {
         Ok(out) => {
@@ -307,6 +506,9 @@ pub async fn call(name: &str, args: &Value, backend: &dyn PuzzleBackend, gate: &
         "fill_word_search" => Some(fill(args, backend, gate, client).await),
         "stylize_text" => Some(stylize(args, backend).await),
         "list_styles" => Some(list_styles(backend).await),
+        "crossword" => Some(crossword(args, backend).await),
+        "sudoku" => Some(sudoku(args, backend).await),
+        "solve_sudoku" => Some(solve_sudoku(args, backend).await),
         "list_languages" => Some(text_result(
             "es Español: Á É Í Ó Ú Ü Ñ\nen English: none\npt Português: Á Â Ã À É Ê Í Ó Ô Õ Ú Ç\nfr Français: À Â Æ Ç É È Ê Ë Î Ï Ô Œ Ù Û Ü Ÿ\nde Deutsch: Ä Ö Ü ẞ\nit Italiano: À È É Ì Ò Ù".into(),
             None,

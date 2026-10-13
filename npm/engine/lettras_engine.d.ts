@@ -45,6 +45,44 @@ export interface StyledResult {
 }
 export interface StylizeOutput { results: StyledResult[]; engineVersion: string }
 export interface StyleInfo { id: string; label: string; category: string }
+export type CrosswordEntry = string | { word: string; clue?: string };
+export interface CrosswordInput {
+    entries: CrosswordEntry[];
+    rows: number;
+    cols: number;
+    seed?: number;
+    classicMode?: boolean;
+    attempts?: number; // layouts to try, default 30, at most 200
+    block?: string; // marker of the blank cells, default '-'
+    open?: string; // marker of the letter cells that do not start a word in `puzzle`, default '0'
+}
+export interface CrosswordPlacement {
+    number: number; // unique per word, 1..N in reading order
+    word: string; clue: string;
+    direction: 'across' | 'down';
+    r: number; c: number; length: number;
+}
+export interface CrosswordOutput {
+    puzzle: string[][];   // word number on a first cell ('3', or '3/4' when an across and a down word start there), '0' on the other letter cells, '-' for blanks
+    solution: string[][]; // same matrix with the correct letters
+    rows: number;
+    cols: number;
+    placements: CrosswordPlacement[];
+    unplaced: string[];
+    rejected: { word: string; reason: string }[];
+    seed: number;
+    engineVersion: string;
+}
+export interface SudokuInput { size?: 4 | 6 | 9 | 12 | 16; difficulty?: 1 | 2 | 3 | 4; seed?: number }
+export interface SudokuOutput {
+    puzzle: number[][];   // 1..size on the clues, 0 on the empty cells
+    solution: number[][]; // the same grid solved
+    size: number; boxRows: number; boxCols: number;
+    givens: number; difficulty: number; seed: number;
+    engineVersion: string;
+}
+export interface SudokuSolveInput { puzzle: number[][] }
+export interface SudokuSolveOutput { solution: number[][]; solved: boolean; unique: boolean; engineVersion: string }
 export interface GenerateOutput {
     grid: string[][];
     placements: Placement[];
@@ -56,6 +94,11 @@ export interface GenerateOutput {
 }
 
 
+
+/**
+ * `crossword(inputJson) -> outputJson`: a crossword layout with numbers and clues. Throws on invalid input.
+ */
+export function crossword(input_json: string): string;
 
 /**
  * `fill(inputJson) -> outputJson`: random letters for the empty cells of a grid. Throws on invalid input.
@@ -83,9 +126,19 @@ export function listStyles(): string;
 export function renderPuzzle(output_json: string): string;
 
 /**
+ * `solveSudoku(inputJson) -> outputJson`: solves a puzzle and says if the answer is the only one. Throws on invalid input.
+ */
+export function solveSudoku(input_json: string): string;
+
+/**
  * `stylize(inputJson) -> outputJson`: text in one, several or every Unicode style. Throws on invalid input.
  */
 export function stylize(input_json: string): string;
+
+/**
+ * `sudoku(inputJson) -> outputJson`: a sudoku puzzle with a unique solution. Throws on invalid input.
+ */
+export function sudoku(input_json: string): string;
 
 /**
  * `unstyle(inputJson) -> outputJson`: styled characters back to plain ones. Throws on invalid input.
@@ -96,12 +149,15 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
+    readonly crossword: (a: number, b: number, c: number) => void;
     readonly fill: (a: number, b: number, c: number) => void;
     readonly findBlocked: (a: number, b: number, c: number) => void;
     readonly generate: (a: number, b: number, c: number) => void;
     readonly listStyles: (a: number) => void;
     readonly renderPuzzle: (a: number, b: number, c: number) => void;
+    readonly solveSudoku: (a: number, b: number, c: number) => void;
     readonly stylize: (a: number, b: number, c: number) => void;
+    readonly sudoku: (a: number, b: number, c: number) => void;
     readonly unstyle: (a: number, b: number, c: number) => void;
     readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
     readonly __wbindgen_export: (a: number, b: number) => number;

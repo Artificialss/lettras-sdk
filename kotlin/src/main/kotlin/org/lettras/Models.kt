@@ -196,5 +196,130 @@ internal data class StyleList(val styles: List<StyleInfo>)
 @Serializable
 internal data class TextBody(val text: String)
 
+/**
+ * A word for a crossword with its clue.
+ *
+ * @property word the answer (letters only, 2 or more)
+ * @property clue the clue shown to the player; empty when you have none
+ */
+@Serializable
+public data class CrosswordEntry(val word: String, val clue: String = "")
+
+/**
+ * Words and clues to lay out as a crossword.
+ *
+ * @property entries the words; offer more than you need, the engine keeps the best subset that fits
+ * @property rows largest height of the result (it is cropped to what it uses); 1 to 100
+ * @property cols largest width; 1 to 100 (same as [rows] for a square)
+ * @property seed same request and seed, same crossword
+ * @property attempts layouts to try, default 30, at most 200: more attempts, denser grid
+ * @property classicMode true strips accents (ñ becomes n)
+ * @property block marker of the blank cells, engine default "-"
+ * @property open marker of the letter cells that do not start a word in [CrosswordResult.puzzle], engine default "0"
+ */
+@Serializable
+public data class CrosswordRequest(
+    val entries: List<CrosswordEntry>,
+    val rows: Int,
+    val cols: Int,
+    val seed: Long? = null,
+    val attempts: Int? = null,
+    val classicMode: Boolean? = null,
+    val block: String? = null,
+    val open: String? = null,
+)
+
+/**
+ * A word placed in the crossword.
+ *
+ * @property number the word's own number, 1 to N in reading order of its first cell
+ * @property direction "across" or "down"
+ * @property r row of the first letter, from 0
+ * @property c column of the first letter, from 0
+ */
+@Serializable
+public data class CrosswordPlacement(
+    val number: Int,
+    val word: String,
+    val clue: String,
+    val direction: String,
+    val r: Int,
+    val c: Int,
+    val length: Int,
+)
+
+/** A word the crossword left out and why. */
+@Serializable
+public data class CrosswordRejected(val word: String, val reason: String)
+
+/**
+ * A crossword: the game position and the solution, as two matrices of the same size.
+ *
+ * @property puzzle `-` for a blank cell, the word number on the first cell of a word (`3`, or `3/4` when an across and a down word
+ *   start in the same cell), `0` on every other cell where a letter goes
+ * @property solution the same matrix with the correct letters (one grapheme per cell) and `-` for blanks
+ * @property placements one per placed word, sorted by number, with its clue
+ * @property unplaced words that did not fit
+ */
+@Serializable
+public data class CrosswordResult(
+    val puzzle: List<List<String>>,
+    val solution: List<List<String>>,
+    val rows: Int,
+    val cols: Int,
+    val placements: List<CrosswordPlacement>,
+    val unplaced: List<String>,
+    val rejected: List<CrosswordRejected>,
+    val seed: Long,
+    val engineVersion: String,
+) {
+    /** The across clues, then the down clues, as text. */
+    public fun clues(): String = listOf("across" to "Across", "down" to "Down").joinToString("\n\n") { (dir, title) ->
+        "$title\n" + placements.filter { it.direction == dir }.joinToString("\n") { "${it.number}. ${it.clue.ifEmpty { it.word }} (${it.length})" }
+    }
+}
+
+/**
+ * A sudoku to generate.
+ *
+ * @property size 4, 6, 9 (default), 12 or 16
+ * @property difficulty 1 easy (most clues) to 4 expert (fewest); engine default 2
+ * @property seed same request and seed, same puzzle
+ */
+@Serializable
+public data class SudokuRequest(val size: Int? = null, val difficulty: Int? = null, val seed: Long? = null)
+
+/**
+ * A sudoku with exactly one solution.
+ *
+ * @property puzzle numbers 1 to [size] on the clues, 0 on the empty cells
+ * @property solution the same grid solved
+ * @property givens clues left in [puzzle]
+ */
+@Serializable
+public data class SudokuResult(
+    val puzzle: List<List<Int>>,
+    val solution: List<List<Int>>,
+    val size: Int,
+    val boxRows: Int,
+    val boxCols: Int,
+    val givens: Int,
+    val difficulty: Int,
+    val seed: Long,
+    val engineVersion: String,
+)
+
+@Serializable
+internal data class SudokuSolveRequest(val puzzle: List<List<Int>>)
+
+/**
+ * The answer of [Lettras.solveSudoku].
+ *
+ * @property solved false when the puzzle has no solution
+ * @property unique true when the solution is the only one
+ */
+@Serializable
+public data class SudokuSolution(val solution: List<List<Int>>, val solved: Boolean, val unique: Boolean, val engineVersion: String)
+
 /** The request was invalid or the engine failed. [message] says why. */
 public class LettrasException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)

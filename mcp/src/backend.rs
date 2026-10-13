@@ -24,6 +24,15 @@ pub trait PuzzleBackend: Send + Sync {
 
     /// The available text styles: `{ styles: [{ id, label, category }] }`.
     async fn list_styles(&self) -> Result<Value, String>;
+
+    /// Takes `{ entries: [{ word, clue }], rows, cols, seed? ... }`, returns the crossword (`puzzle`, `solution`, `placements`).
+    async fn crossword(&self, input: Value) -> Result<Value, String>;
+
+    /// Takes `{ size?, difficulty?, seed? }`, returns a sudoku with one solution.
+    async fn sudoku(&self, input: Value) -> Result<Value, String>;
+
+    /// Takes `{ puzzle }`, returns `{ solution, solved, unique }`.
+    async fn solve_sudoku(&self, input: Value) -> Result<Value, String>;
 }
 
 /// Runs the embedded engine in-process (wasmi). No network, no credentials, no environment variables.
@@ -101,5 +110,17 @@ impl PuzzleBackend for Arc<LocalEngine> {
 
     async fn list_styles(&self) -> Result<Value, String> {
         self.call("lettras_styles", Value::String(String::new())).await
+    }
+
+    async fn crossword(&self, input: Value) -> Result<Value, String> {
+        self.call("lettras_crossword", input).await
+    }
+
+    async fn sudoku(&self, input: Value) -> Result<Value, String> {
+        self.call("lettras_sudoku", input).await
+    }
+
+    async fn solve_sudoku(&self, input: Value) -> Result<Value, String> {
+        self.call("lettras_sudoku_solve", input).await
     }
 }

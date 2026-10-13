@@ -2,6 +2,9 @@ import {
   generate as generateRaw,
   fill as fillRaw,
   findBlocked as findBlockedRaw,
+  crossword as crosswordRaw,
+  sudoku as sudokuRaw,
+  solveSudoku as solveSudokuRaw,
   stylize as stylizeRaw,
   unstyle as unstyleRaw,
   listStyles as listStylesRaw,
@@ -96,4 +99,35 @@ export function unstyle(text) {
  */
 export function listStyles() {
   return JSON.parse(listStylesRaw()).styles;
+}
+
+/**
+ * Lay out a crossword (crucigrama) from words with clues. Runs locally, deterministic for the same input and seed.
+ * `puzzle` is the game position: `-` blank, the word number on the first cell of each word (`3`, or `3/4` when an across
+ * and a down word start in the same cell), `0` on the other letter cells. `solution` is the same matrix with the letters.
+ * `placements` lists every word with its number, clue, direction and position. Throws on invalid input.
+ * @param {import('../engine/index.js').CrosswordInput} input
+ * @returns {import('../engine/index.js').CrosswordOutput}
+ */
+export function crossword(input) {
+  return JSON.parse(crosswordRaw(JSON.stringify({ ...input, cols: input.cols ?? input.rows })));
+}
+
+/**
+ * Generate a sudoku with exactly one solution (sizes 4, 6, 9, 12, 16; difficulty 1 easy to 4 expert). `0` marks an empty cell.
+ * @param {import('../engine/index.js').SudokuInput} [input]
+ * @returns {import('../engine/index.js').SudokuOutput}
+ */
+export function sudoku(input = {}) {
+  return JSON.parse(sudokuRaw(JSON.stringify(input)));
+}
+
+/**
+ * Solve a sudoku grid (`0` = empty) and say whether the answer is the only one. Throws on a malformed or contradictory grid.
+ * @param {number[][] | import('../engine/index.js').SudokuSolveInput} puzzle
+ * @returns {import('../engine/index.js').SudokuSolveOutput}
+ */
+export function solveSudoku(puzzle) {
+  const input = Array.isArray(puzzle) ? { puzzle } : puzzle;
+  return JSON.parse(solveSudokuRaw(JSON.stringify(input)));
 }

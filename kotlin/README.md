@@ -23,7 +23,7 @@ println(puzzle.render())
 ```
 
 ```
-9×12  seed 8  engine 0.4.0
+9×12  seed 8  engine 0.5.0
 
 - - - - - - - - - - - -
 - - - - - - - - - - - -
@@ -79,7 +79,7 @@ Published on [Maven Central](https://central.sonatype.com/artifact/org.lettras.a
 
 ```kotlin
 dependencies {
-    implementation("org.lettras.artificialss:lettras:0.4.0")
+    implementation("org.lettras.artificialss:lettras:0.5.0")
 }
 ```
 

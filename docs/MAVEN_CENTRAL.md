@@ -63,7 +63,7 @@ Signing is only switched on when `signingInMemoryKey` is set, so local builds an
 
 ```kotlin
 dependencies {
-    implementation("org.lettras.artificialss:lettras:0.4.0")
+    implementation("org.lettras.artificialss:lettras:0.5.0")
 }
 ```
 Gradle projects need `mavenCentral()` in their repositories (Android projects have it by default). The library brings
