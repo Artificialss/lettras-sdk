@@ -10,6 +10,9 @@ All three distributions (npm `lettras`, Maven `org.lettras.artificialss:lettras`
 - MCP: new tools `crossword`, `sudoku` and `solve_sudoku`, free with no usage limit (they do not use up puzzles or fills).
 - Engine 0.5.0 (`engineVersion`); word searches, fills and styles for the same seed are identical to 0.4.0.
 
+## 0.4.1 (npm only)
+- npm package page: the README now introduces the Unicode text styles (`stylize`, `unstyle`, `listStyles`), shows the examples and the Artificialss credit. No code change: Maven stays at 0.4.0 and the MCP server at 0.4.0.
+
 ## 0.4.0
 - **New: Unicode text styles** (the engine behind Social Media Styles). 22 styles (bold, italic, script, fraktur, double-struck,
   monospace, small caps, fullwidth, circled, squared, parenthesized, strikethrough, underline and more) that **keep accents**: an
