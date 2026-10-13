@@ -1,8 +1,9 @@
 # Changelog
 
-All three distributions (npm `lettras`, Maven `org.lettras.artificialss:lettras`, the MCP server) are versioned together.
+All three distributions (npm `lettras`, Maven `org.lettras.artificialss:lettras`, the MCP server) are versioned together. The code, the engine (`engineVersion`), the Kotlin library and the MCP server are at 0.5.0; npm
+`lettras` 0.5.1 is the same code as 0.5.0 with a fuller package-page README (npm cannot change a README without a new version).
 
-## 0.5.1 (npm only)
+## 0.5.1 (npm only, same code as 0.5.0)
 - npm package page: dedicated sections for the crossword, the sudoku and the Unicode text styles, each with code to use it, real example output and how it works. No code changes.
 
 ## 0.5.0
