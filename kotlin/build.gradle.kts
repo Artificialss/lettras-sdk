@@ -44,7 +44,7 @@ tasks.test {
 }
 
 // Maven Central (Central Portal). Uploading is manual-release: the bundle waits in the portal until you press Publish.
-// Credentials and the signing key come from environment variables, never from this file; see ../docs/MAVEN_CENTRAL.md.
+// Credentials and the signing key come from environment variables, never from this file.
 mavenPublishing {
     publishToMavenCentral(automaticRelease = false)
     if (providers.gradleProperty("signingInMemoryKey").isPresent) signAllPublications()

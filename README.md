@@ -37,7 +37,8 @@ kept as one cell each, from your own code, a terminal, or an AI assistant. Besid
 - [Kotlin library](#kotlin-library)
 - [MCP server](#mcp-server)
 - [Text styles](#text-styles)
-- [Crossword and sudoku](#crossword-and-sudoku)
+- [Crossword (crucigrama)](#crossword-crucigrama)
+- [Sudoku](#sudoku)
 - [How puzzles are built](#how-puzzles-are-built)
 - [Architecture and licensing](#architecture-and-licensing)
 - [Repository layout](#repository-layout)
@@ -265,13 +266,11 @@ service. To run your own copy with a daily limit instead, set `LETTRAS_LIMIT_WIN
    server creates its own `mcp_usage` table on first use; it stores a hash, a count and a timestamp per client.
 3. Optional settings, all in [`.env.example`](.env.example): `LETTRAS_FREE_LIMIT`, `LETTRAS_FILL_LIMIT`,
    `LETTRAS_LIMIT_WINDOW_SECS` (0 = lifetime total, the default), `LETTRAS_UPGRADE_URL`.
-4. Optional: add your own domain under the project's Settings → Domains (ours is `mcp.lettras.org`, a `CNAME` named `mcp` pointing to `cname.vercel-dns.com`; do not change the domain's nameservers).
+4. Optional: add your own domain under the project's Settings → Domains (a `CNAME` pointing to `cname.vercel-dns.com`; do not change the domain's nameservers).
 5. Deploy. Every puzzle request writes one JSON line to the function logs (hashed client, count, allowed or blocked,
    grid size, language), which you can read in Vercel Logs or forward with a log drain.
 
-The server is described for MCP registries in [`server.json`](server.json); publishing steps are in
-[`docs/REGISTRY.md`](docs/REGISTRY.md). Publishing the Kotlin library to Maven Central:
-[`docs/MAVEN_CENTRAL.md`](docs/MAVEN_CENTRAL.md).
+The server is described for MCP registries in [`server.json`](server.json).
 
 No secret is stored in this repository. Real values belong in Vercel's project settings.
 
@@ -377,17 +376,204 @@ stylize('Hola', { style: ['bold', 'script'] }).results.length;  // 2
 stylize('Hola').results.length;                                 // 22
 ```
 
+Reference: [docs/TEXT_STYLES.md](docs/TEXT_STYLES.md).
+
 **Kotlin and MCP.** `lettras.stylize("piña", style = "bold")` returns the same results; in an MCP client, ask for *"write 'Lettras ejemplo' in bold and script"*
 and the assistant calls `stylize_text` with `{ "text": "Lettras ejemplo", "style": ["bold", "script"] }`.
 
-## Crossword and sudoku
+## Crossword (crucigrama)
 
-Two more generators from the same engine (since 0.5.0), in npm, Kotlin and the MCP server:
+Words with clues in, a crossword out: a `puzzle` matrix to play and a `solution` matrix to check. Every language works and accents are kept.
 
-- **Crossword (crucigrama):** words and clues in, a connected crossword out. The result has a `puzzle` matrix (the clue number on the
-  first cell of each word, `0` on the other letter cells, `-` for blanks, and `a/d` such as `1/2` when an across and a down word start in
-  the same cell) and a `solution` matrix with the letters. See [docs/CROSSWORD.md](docs/CROSSWORD.md).
-- **Sudoku:** puzzles with a single solution (4, 6, 9, 12 or 16 wide, difficulty 1 to 4) and a solver. See [docs/SUDOKU.md](docs/SUDOKU.md).
+### Use it
+
+```js
+import { crossword } from 'lettras';
+
+const out = crossword({
+  entries: [
+    { word: 'gato',  clue: 'Maúlla y caza ratones' },
+    { word: 'perro', clue: 'El mejor amigo del hombre' },
+    { word: 'mono',  clue: 'Trepa por los árboles' },
+    { word: 'cebra', clue: 'Rayas blancas y negras' },
+    { word: 'oso',   clue: 'Duerme en invierno' },
+    { word: 'rata',  clue: 'Roedor pequeño' },
+    { word: 'toro',  clue: 'Embiste al capote' },
+    { word: 'piña',  clue: 'Fruta tropical con corona' },
+    { word: 'ñu',    clue: 'Antílope africano' },
+  ],
+  rows: 12, cols: 12,   // the largest it may take; the result is cropped
+  seed: 4,              // optional: same input and seed, same crossword
+});
+```
+
+**Kotlin**
+
+```kotlin
+val c = Lettras().crossword(listOf("gato" to "Maúlla y caza ratones", "perro" to "El mejor amigo del hombre"), rows = 12, seed = 4)
+c.puzzle; c.solution; c.placements; c.clues()
+```
+
+**MCP** (tool `crossword`, free, no usage limit): ask *"make a Spanish animals crossword with these words and clues"*, or call it with
+
+```json
+{ "name": "crossword", "arguments": { "entries": [ { "word": "gato", "clue": "Maúlla y caza ratones" }, { "word": "perro", "clue": "El mejor amigo del hombre" } ], "rows": 12, "seed": 4 } }
+```
+
+
+### Example output
+
+`out.puzzle` (7 rows x 11 columns here, what the player sees):
+
+```
+-   -   -   -   -   1   -   2   -   -   -
+-   -   -   -   -   0   -   0   -   -   3
+-   -   -   -   -   0   -   4   0   0   0
+-   -   -   5/6 0   0   0   0   -   -   0
+-   -   -   0   -   0   -   -   7   0   0
+-   -   -   8   0   -   -   -   -   -   -
+9   0   0   0   -   -   -   -   -   -   -
+```
+
+`out.solution` (the answers):
+
+```
+- - - - - C - G - - -
+- - - - - E - A - - M
+- - - - - B - T O R O
+- - - P E R R O - - N
+- - - I - A - - O S O
+- - - Ñ U - - - - - -
+R A T A - - - - - - -
+```
+
+`out.placements` lists every word with its number, clue, direction and first cell (`r` row, `c` column, both from 0):
+
+```json
+{ "number": 1, "word": "cebra", "clue": "Rayas blancas y negras",      "direction": "down",   "r": 0, "c": 5, "length": 5 }
+{ "number": 5, "word": "perro", "clue": "El mejor amigo del hombre",   "direction": "across", "r": 3, "c": 3, "length": 5 }
+{ "number": 6, "word": "piña",  "clue": "Fruta tropical con corona",   "direction": "down",   "r": 3, "c": 3, "length": 4 }
+```
+
+The clue lists for the player come straight from `placements`:
+
+```
+Across                                  Down
+4. Embiste al capote (4)                1. Rayas blancas y negras (5)
+5. El mejor amigo del hombre (5)        2. Maúlla y caza ratones (4)
+7. Duerme en invierno (3)               3. Trepa por los árboles (4)
+8. Antílope africano (2)                6. Fruta tropical con corona (4)
+9. Roedor pequeño (4)
+```
+
+Other fields: `rows`, `cols` (size of the cropped grid), `unplaced`, `rejected` (words refused, with a reason), `seed`, `engineVersion`.
+Options: `entries`, `rows`, `cols`, `seed`, `attempts` (1 to 200, default 30: more attempts, denser crossword), `classicMode` (strip accents),
+`block` and `open` (the markers above). Every language works and accents are kept.
+
+### How it works
+
+1. **You give words with clues** and the biggest size the crossword may take (`rows` x `cols`). Offer more words than you need.
+2. **The engine tries many layouts** (`attempts`, default 30). Each one starts with the longest word; every next word must cross a word
+   already on the board, and words only touch where they cross, so every run of two or more letters is a real entry.
+3. **The best layout wins**: most words placed, then most crossings, then the smallest box. The grid is cropped to what it uses, and words
+   that did not fit come back in `unplaced`. The same input and `seed` always give the same crossword.
+4. **Every word gets its own number**, 1 to N in reading order of its first cell. When an across word and a down word start in the same
+   cell, that cell shows both numbers as **`across/down`** (`5/6` below: word 5 goes across, word 6 goes down).
+5. **You get two matrices of the same size**: `puzzle` is what the player sees, `solution` has the answers. Show `puzzle` with an empty
+   box where a `0` is, and check the player's letters against `solution`.
+
+| Cell in `puzzle` | Meaning |
+| --- | --- |
+| `-` | Blank: no word goes through this cell (change it with `block`). |
+| `1`, `2`, `3`... | A word starts here. Its number matches `placements[].number`. |
+| `5/6` | An across word (5) and a down word (6) both start here. |
+| `0` | A letter goes here, but no word starts here (change it with `open`). |
+
+In `solution` every letter cell holds one grapheme (`Ñ` and `ẞ` are one cell) and blanks are `-`.
+
+Reference: [docs/CROSSWORD.md](docs/CROSSWORD.md) · Kotlin: [kotlin/README.md](kotlin/README.md#crossword-and-sudoku).
+
+## Sudoku
+
+Puzzles with **exactly one solution**, in five sizes, and a solver.
+
+### Use it
+
+```js
+import { sudoku, solveSudoku } from 'lettras';
+
+const s = sudoku({ size: 9, difficulty: 2, seed: 5 });
+s.givens;    // 32 clues
+s.puzzle;    // 9 rows of numbers, 0 = empty cell
+s.solution;  // the same grid solved
+```
+
+**Kotlin**
+
+```kotlin
+val s = Lettras().sudoku(size = 9, difficulty = 2, seed = 5)
+val r = Lettras().solveSudoku(s.puzzle)   // solution, solved, unique
+```
+
+**MCP** (tools `sudoku` and `solve_sudoku`, free, no usage limit): ask *"give me an easy 4x4 sudoku for a child"*, or call them with
+
+```json
+{ "name": "sudoku", "arguments": { "size": 9, "difficulty": 2, "seed": 5 } }
+{ "name": "solve_sudoku", "arguments": { "puzzle": [[0,7,5,2,3,0,6,9,0], "... 8 more rows ..."] } }
+```
+
+
+### Example output
+
+`s.puzzle` (`·` is a `0`) and `s.solution`:
+
+```
+· 7 5 2 3 · 6 9 ·        8 7 5 2 3 4 6 9 1
+· · · · · 7 4 2 3        1 6 9 8 5 7 4 2 3
+· · · · · 1 5 · 7        3 2 4 9 6 1 5 8 7
+· · · · · 3 2 5 ·        9 4 8 1 7 3 2 5 6
+2 · 6 · 9 8 · 1 ·        2 3 6 5 9 8 7 1 4
+· 1 · · · · · · ·        5 1 7 6 4 2 8 3 9
+· · · · 1 · 9 · 8        7 5 2 3 1 6 9 4 8
+4 · 3 · · · · · 2        4 9 3 7 8 5 1 6 2
+6 8 · 4 · 9 · · ·        6 8 1 4 2 9 3 7 5
+```
+
+Solve a grid (yours or a generated one):
+
+```js
+solveSudoku(s.puzzle); // { solution: [...], solved: true, unique: true, engineVersion: '0.5.0' }
+```
+
+A small one for children (`size: 4`, `difficulty: 1`, `seed: 1`):
+
+```json
+{ "puzzle":   [[4,1,3,0],[2,3,0,4],[0,0,0,0],[0,4,0,3]],
+  "solution": [[4,1,3,2],[2,3,1,4],[3,2,4,1],[1,4,2,3]], "size": 4, "boxRows": 2, "boxCols": 2, "givens": 8 }
+```
+
+Result fields: `puzzle`, `solution`, `size`, `boxRows`, `boxCols`, `givens`, `difficulty`, `seed`, `engineVersion`.
+Invalid input (a size that does not exist, a number repeated in a row, column or box) throws with the reason.
+
+### How it works
+
+1. **A full valid grid is built** with a randomized search (every row, column and box holds each number once), so each `seed` gives a different one.
+2. **Cells are taken out one at a time**, in random order, and a removal is kept only if the puzzle **still has exactly one solution**.
+   `difficulty` sets how many clues stay: 1 easy (most clues) to 4 expert (fewest).
+3. **You get `puzzle`** (clues as numbers, `0` for the empty cells) **and `solution`** (the same grid solved). The same input and `seed` give the same sudoku.
+4. **`solveSudoku`** solves any grid you give it and says whether the answer is the only one (`unique`).
+
+| `size` | Boxes | Numbers |
+| --- | --- | --- |
+| 4 | 2 x 2 | 1 to 4 |
+| 6 | 2 x 3 | 1 to 6 |
+| 9 | 3 x 3 | 1 to 9 (the classic) |
+| 12 | 3 x 4 | 1 to 12 |
+| 16 | 4 x 4 | 1 to 16 |
+
+Clues left on a 9 x 9 grid: about 41 / 32 / 28 / 24 for difficulty 1 / 2 / 3 / 4. The 12 x 12 and 16 x 16 grids stop removing clues after about half a second, so their hardest levels keep a few more.
+
+Reference: [docs/SUDOKU.md](docs/SUDOKU.md) · Kotlin: [kotlin/README.md](kotlin/README.md#crossword-and-sudoku).
 
 ## How puzzles are built
 
@@ -441,19 +627,18 @@ mcp/                 MCP server (Rust): protocol, tools, free-tier gate, Vercel 
 
 ```bash
 # npm package
-cd npm && npm test
+cd npm && npm test                  # 25 tests
 
 # Kotlin library (JDK 17)
-cd kotlin && ./gradlew test         # 26 tests, including exact parity with the npm package
+cd kotlin && ./gradlew test         # 33 tests, including exact parity with the npm package
 
 # MCP server (Rust 1.80+)
-cd mcp && cargo test --release      # 30 tests, including exact parity with the npm package
+cd mcp && cargo test --release      # 43 tests, including exact parity with the npm package
 # counter against a real Postgres (optional):
 #   TEST_DATABASE_URL=postgres://... cargo test --release --test pg -- --ignored
 ```
 
-The compiled engine is refreshed from the private repository by its maintainers; pull requests that change
-`engine/` cannot be accepted. Issues and suggestions about the wrappers, the MCP server or the docs are welcome.
+The compiled engine in `engine/` comes from Lettras' own build, so pull requests that change it cannot be accepted. Issues and suggestions about the wrappers, the MCP server or the docs are welcome.
 
 ## Limits of the engine
 
