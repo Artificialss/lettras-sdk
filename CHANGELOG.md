@@ -2,6 +2,9 @@
 
 All three distributions (npm `lettras`, Maven `org.lettras.artificialss:lettras`, the MCP server) are versioned together.
 
+## 0.5.1 (npm only)
+- npm package page: dedicated sections for the crossword, the sudoku and the Unicode text styles, each with code to use it, real example output and how it works. No code changes.
+
 ## 0.5.0
 - **Crossword (crucigrama):** `crossword({ entries, rows, cols, ... })` returns a `puzzle` matrix (word numbers, `0`, `-`, and `a/d` where an
   across and a down word start in the same cell), a `solution` matrix and `placements` with the clue of each word. npm, Kotlin and MCP.
