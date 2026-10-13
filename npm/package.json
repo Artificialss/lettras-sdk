@@ -1,6 +1,6 @@
 {
   "name": "lettras",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Word-search generator and Unicode text styles for 6 languages (es, en, pt, fr, de, it), with native accented letters kept. Runs locally via WebAssembly, no network or API key. Library and CLI.",
   "type": "module",
   "main": "./src/index.js",

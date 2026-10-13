@@ -2,6 +2,9 @@
 
 All three distributions (npm `lettras`, Maven `org.lettras.artificialss:lettras`, the MCP server) are versioned together.
 
+## 0.4.1 (npm only)
+- npm package page: the README now introduces the Unicode text styles (`stylize`, `unstyle`, `listStyles`), shows the examples and the Artificialss credit. No code change: Maven stays at 0.4.0 and the MCP server at 0.4.0.
+
 ## 0.4.0
 - **New: Unicode text styles** (the engine behind Social Media Styles). 22 styles (bold, italic, script, fraktur, double-struck,
   monospace, small caps, fullwidth, circled, squared, parenthesized, strikethrough, underline and more) that **keep accents**: an
