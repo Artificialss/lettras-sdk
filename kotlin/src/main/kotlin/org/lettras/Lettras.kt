@@ -62,10 +62,12 @@ public class Lettras {
      * Completes a [Puzzle] from [generate]: its words are protected from accidental extra copies.
      * Use `puzzle.copy(grid = result.grid)` to get the filled puzzle back.
      */
+    @JvmOverloads
     public fun fill(puzzle: Puzzle, lang: Language = Language.ES, accents: Boolean = true, seed: Long? = null): FillResult =
         fill(FillRequest(grid = puzzle.grid, lang = lang, accents = accents, seed = seed, words = puzzle.words))
 
     /** Fills a bare matrix (rows of one-letter strings, empty cells `-`). */
+    @JvmOverloads
     public fun fill(grid: List<List<String>>, lang: Language = Language.ES, accents: Boolean = true, seed: Long? = null): FillResult =
         fill(FillRequest(grid = grid, lang = lang, accents = accents, seed = seed))
 
@@ -79,10 +81,12 @@ public class Lettras {
         json.decodeFromString(StylizeResult.serializer(), guard { engine.stylize(json.encodeToString(StylizeRequest.serializer(), request)) })
 
     /** Shorthand for [stylize]: one [style] id (or all 22 when null). */
+    @JvmOverloads
     public fun stylize(text: String, style: String? = null, classic: Boolean = false): StylizeResult =
         stylize(StylizeRequest(text = text, style = style?.let { listOf(it) }, classic = classic))
 
     /** Shorthand for [stylize] with several style ids. */
+    @JvmOverloads
     public fun stylize(text: String, styles: List<String>, classic: Boolean = false): StylizeResult =
         stylize(StylizeRequest(text = text, style = styles, classic = classic))
 
@@ -103,14 +107,17 @@ public class Lettras {
         json.decodeFromString(CrosswordResult.serializer(), guard { engine.crossword(json.encodeToString(CrosswordRequest.serializer(), request)) })
 
     /** Shorthand for [crossword] with `word to clue` pairs. */
+    @JvmOverloads
     public fun crossword(entries: List<Pair<String, String>>, rows: Int, cols: Int = rows, seed: Long? = null): CrosswordResult =
         crossword(CrosswordRequest(entries = entries.map { CrosswordEntry(it.first, it.second) }, rows = rows, cols = cols, seed = seed))
 
     /** A sudoku with exactly one solution (sizes 4, 6, 9, 12, 16; difficulty 1 to 4). Throws [LettrasException] for invalid input. */
+    @JvmOverloads
     public fun sudoku(request: SudokuRequest = SudokuRequest()): SudokuResult =
         json.decodeFromString(SudokuResult.serializer(), guard { engine.sudoku(json.encodeToString(SudokuRequest.serializer(), request)) })
 
     /** Shorthand for [sudoku]. */
+    @JvmOverloads
     public fun sudoku(size: Int, difficulty: Int = 2, seed: Long? = null): SudokuResult =
         sudoku(SudokuRequest(size = size, difficulty = difficulty, seed = seed))
 
@@ -129,6 +136,7 @@ public class Lettras {
         }
 
     /** Shorthand for [generate] with the common options. */
+    @JvmOverloads
     public fun generate(
         words: List<String>,
         rows: Int,

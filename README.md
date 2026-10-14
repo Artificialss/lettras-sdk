@@ -26,6 +26,11 @@ kept as one cell each, from your own code, a terminal, or an AI assistant. Besid
 | --- | --- | --- | --- |
 | **`lettras` on npm** | JavaScript/TypeScript library and CLI. Runs locally, no network or API key | `npm install lettras` ([npm](https://www.npmjs.com/package/lettras)) | [`npm/`](npm) |
 | **`lettras` for Kotlin** | Kotlin library for the JVM and Android. Same engine, runs locally | `org.lettras.artificialss:lettras` ([Maven Central](https://central.sonatype.com/artifact/org.lettras.artificialss/lettras)) | [`kotlin/`](kotlin) |
+| **`lettras` for Java** | The Kotlin library works from plain Java (JVM 17+) | `org.lettras.artificialss:lettras` | [`kotlin/`](kotlin) |
+| **`lettras` for Go** | Go module, pure Go (no cgo), every OS and architecture | `go get github.com/Artificialss/lettras-sdk/go` | [`go/`](go) |
+| **`lettras` for Swift** | Swift package for Apple platforms and Linux | `https://github.com/Artificialss/lettras-sdk` ([SwiftPM](swift/README.md)) | [`swift/`](swift) |
+| **`Lettras` for .NET** | C# library for .NET 8+ on Windows, macOS and Linux | `dotnet add package Lettras` | [`dotnet/`](dotnet) |
+| **`lettras` for Rust** | Rust crate, engine embedded and run in-process | `cargo add lettras` | [`rust/`](rust) |
 | **Lettras MCP server** | Lets Claude and other MCP clients create puzzles. Written in Rust, runs on Vercel | `https://mcp.lettras.org/mcp` ([MCP Registry](https://registry.modelcontextprotocol.io/v0.1/servers?search=org.lettras/word-search)) | [`mcp/`](mcp) |
 
 > **Published.** All three are live: the npm package, the Kotlin library on Maven Central, and the hosted MCP server

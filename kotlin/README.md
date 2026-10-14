@@ -427,3 +427,25 @@ Android uses and checks it against the same fixture.
 Library code: MIT. The bundled engine (`src/main/resources/org/lettras/lettras_engine.wasm`) is proprietary; see
 `LICENSE-ENGINE` next to it. You may use it unmodified, through this library, in your own products, including commercial
 ones; you may not extract, redistribute, modify or reverse-engineer it.
+
+## Java
+
+The library is plain Java-friendly: the shorthand methods keep their defaults through overloads.
+
+```java
+import org.lettras.*;
+import java.util.List;
+import kotlin.Pair;
+
+Lettras lettras = new Lettras();
+
+Puzzle puzzle = lettras.generate(List.of("gato", "perro", "piña"), 9);          // rows = 9, cols = 9
+FillResult filled = lettras.fill(puzzle);                                       // random letters in the empty cells
+SudokuResult sudoku = lettras.sudoku(9);
+boolean unique = lettras.solveSudoku(sudoku.getPuzzle()).getUnique();
+CrosswordResult crossword = lettras.crossword(List.of(new Pair<>("gato", "Felino"), new Pair<>("toro", "Bovino")), 10);
+StylizeResult bold = lettras.stylize("Ñandú");
+```
+
+Gradle: `implementation("org.lettras.artificialss:lettras:<version>")`; Maven: the same coordinates as `groupId:artifactId:version`. Records such as `Puzzle` expose
+`getX()` accessors from Java. The overloads need a release after 0.5.0; with 0.5.0 pass every argument (use `null` for the optional ones).

@@ -2,6 +2,10 @@
 
 All three distributions (npm `lettras`, Maven `org.lettras.artificialss:lettras`, the MCP server) are versioned together.
 
+## Unreleased
+- New: Rust crate (`rust/`), Go module (`go/`), Swift package (`swift/`) and .NET package (`dotnet/`), all running the same embedded engine locally.
+- Kotlin: `@JvmOverloads` on the shorthand methods, so the library is comfortable to use from Java; Java usage test and README section.
+
 ## 0.5.1 (npm only)
 - npm package page: dedicated sections for the crossword, the sudoku and the Unicode text styles, each with code to use it, real example output and how it works. No code changes.
 

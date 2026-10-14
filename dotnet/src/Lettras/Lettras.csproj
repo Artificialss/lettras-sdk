@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net8.0</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>Lettras</AssemblyName>
+    <RootNamespace>Lettras</RootNamespace>
+    <PackageId>Lettras</PackageId>
+    <Version>0.5.1</Version>
+    <Authors>Artificialss</Authors>
+    <Description>Word-search, crossword and sudoku generators plus Unicode text styles for es, en, pt, fr, de and it, with native accents kept. Runs locally, no network.</Description>
+    <PackageTags>word-search;crossword;sudoku;puzzle;unicode;i18n</PackageTags>
+    <PackageProjectUrl>https://www.lettras.org</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Artificialss/lettras-sdk</RepositoryUrl>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Wasmtime" Version="22.0.0" />
+    <EmbeddedResource Include="lettras_engine.wasm" LogicalName="lettras_engine.wasm" />
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="ENGINE-LICENSE.txt" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>
