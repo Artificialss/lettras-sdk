@@ -1,0 +1,7 @@
+# The compiled engine is embedded in each library as generated data. Hide it from diffs and from GitHub's language statistics.
+dart/lib/src/engine_data.dart linguist-generated=true -diff
+npm/engine/index.js linguist-generated=true -diff
+*.wasm binary linguist-generated=true
+**/package-lock.json linguist-generated=true
+**/Cargo.lock linguist-generated=true
+**/gradle-wrapper.jar binary linguist-vendored=true
