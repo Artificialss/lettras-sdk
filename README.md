@@ -33,8 +33,9 @@ kept as one cell each, from your own code, a terminal, or an AI assistant. Besid
 | **`lettras` for Rust** | Rust crate, engine embedded and run in-process | `cargo add lettras` | [`rust/`](rust) |
 | **Lettras MCP server** | Lets Claude and other MCP clients create puzzles. Written in Rust, runs on Vercel | `https://mcp.lettras.org/mcp` ([MCP Registry](https://registry.modelcontextprotocol.io/v0.1/servers?search=org.lettras/word-search)) | [`mcp/`](mcp) |
 
-> **Published.** All three are live: the npm package, the Kotlin library on Maven Central, and the hosted MCP server
-> (also listed in the official MCP Registry). A documentation site is planned.
+> **Published.** Live today: the npm package, the Kotlin library on Maven Central (which also serves Java), and the hosted MCP server
+> (also listed in the official MCP Registry). The Rust, Go, Swift and .NET libraries are built and tested here and are being
+> published to their own package registries (crates.io, pkg.go.dev, Swift Package Index, NuGet). A documentation site is planned.
 
 ## Table of contents
 
@@ -605,13 +606,14 @@ Deterministic: the same input and seed give the same grid everywhere, on every p
       ┌───────┴──────────────────────────────┐
       ▼                                      ▼
  npm/engine/                       mcp/engine/ (and kotlin/ resources)
- WebAssembly + loader              WebAssembly (C ABI)
- used by the npm package           MCP server (wasmi), Kotlin library (Chicory)
+ WebAssembly + loader              WebAssembly (C ABI), one copy per library
+ used by the npm package           MCP server (wasmi), Kotlin and Java (Chicory), Rust (wasmi),
+                                   Go (wazero), Swift (WasmKit), .NET (Wasmtime)
 ```
 
 This repository contains the **wrappers, CLI, MCP server, tests and documentation**. The puzzle engine itself is
-developed in a private repository and ships here only as compiled WebAssembly in `npm/engine/`, `mcp/engine/` and
-`kotlin/src/main/resources/`.
+developed in a private repository and ships here only as compiled WebAssembly in `npm/engine/`, `mcp/engine/`,
+`kotlin/src/main/resources/`, `rust/engine/`, `go/engine/`, `swift/Sources/Lettras/Resources/` and `dotnet/src/Lettras/`.
 All copies come from the same build and are checked against each other: the MCP server's and the Kotlin library's
 tests assert that they return exactly the same grids as the npm package for the same input.
 
@@ -625,6 +627,10 @@ kotlin/              Kotlin library (JVM and Android): API, Chicory host, tests
 assets/              brand kit: logos, icons and social images (see assets/README.md)
 mcp/                 MCP server (Rust): protocol, tools, free-tier gate, Vercel entry point
   engine/            compiled engine (proprietary, see engine/LICENSE)
+rust/                the `lettras` crate (crates.io): API, wasmi host, tests
+go/                  Go module: API, wazero host (pure Go), tests
+swift/               Swift package (Package.swift is at the repository root): API, WasmKit host, tests
+dotnet/              .NET package `Lettras`: API, Wasmtime host, tests
 .env.example         every optional setting, with no values
 ```
 
@@ -636,6 +642,12 @@ cd npm && npm test                  # 25 tests
 
 # Kotlin library (JDK 17)
 cd kotlin && ./gradlew test         # 33 tests, including exact parity with the npm package
+
+# Rust crate, Go module, Swift package, .NET package
+cd rust && cargo test               # 6 tests + doc test
+cd go && go test ./...              # 3 tests; cross-build with GOOS=linux GOARCH=arm64 go build ./...
+swift test                          # 4 tests (repository root)
+cd dotnet/tests/Lettras.Tests && dotnet test    # 4 tests (.NET 8)
 
 # MCP server (Rust 1.80+)
 cd mcp && cargo test --release      # 43 tests, including exact parity with the npm package
@@ -655,7 +667,7 @@ inputs (combining marks, emoji, right-to-left text, zero-width joiners, garbage 
 ## License
 
 The code in this repository is released under the [MIT License](LICENSE), **except** the compiled engine in
-`npm/engine/`, `mcp/engine/` and `kotlin/src/main/resources/org/lettras/`, which is proprietary and covered by its own license (`engine/LICENSE`): you may use it
+`npm/engine/`, `mcp/engine/`, `kotlin/src/main/resources/org/lettras/`, `rust/engine/`, `go/engine/`, `swift/Sources/Lettras/Resources/` and `dotnet/src/Lettras/`, which is proprietary and covered by its own license (`engine/LICENSE`): you may use it
 unmodified, through this package or server, in your own products, including commercial ones, but you may not extract,
 redistribute, modify or reverse-engineer it.
 
