@@ -1,6 +1,6 @@
 # JetBrains Marketplace
 
-The plugin lives in [`jetbrains/`](../jetbrains/README.md). Plugin id `org.lettras.jetbrains` (permanent once published), name **Lettras**, vendor **Artificialss**.
+The plugin lives in [`jetbrains/`](../jetbrains/README.md). Plugin id `ai.artificialss.lettras` (permanent once published), name **Lettras**, vendor **Artificialss**.
 
 ## Upload
 
