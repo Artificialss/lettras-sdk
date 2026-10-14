@@ -2,6 +2,9 @@
 
 All three distributions (npm `lettras`, Maven `org.lettras.artificialss:lettras`, the MCP server) are versioned together.
 
+## JetBrains plugin 0.5.3
+- No deprecated IDE API (the verifier reported 2 usages of `Messages.showChooseDialog`): the style picker is now a list popup and the sudoku size and difficulty are button dialogs. Verified Compatible with IDEA 2024.1 to 2025.2 with zero deprecated usages; `./gradlew verifyPlugin` is configured.
+
 ## 0.5.2
 - New: Rust crate (`rust/`), Go module (`go/`), Swift package (`swift/`) and .NET package (`dotnet/`), all running the same embedded engine locally.
 - New: Dart and Flutter package (`dart/`), VS Code extension (`vscode/`), JetBrains plugin (`jetbrains/`) and Homebrew formula (`homebrew/`).
