@@ -1,0 +1,22 @@
+[package]
+name = "lettras"
+version = "0.5.1"
+edition = "2021"
+rust-version = "1.75"
+description = "Word-search, crossword and sudoku generators plus Unicode text styles for es, en, pt, fr, de and it, with native accents kept. Runs locally, no network."
+license-file = "LICENSE"
+readme = "README.md"
+repository = "https://github.com/Artificialss/lettras-sdk"
+homepage = "https://www.lettras.org"
+documentation = "https://docs.rs/lettras"
+keywords = ["word-search", "crossword", "sudoku", "puzzle", "unicode"]
+categories = ["games", "text-processing", "internationalization"]
+include = ["src/**", "engine/**", "examples/**", "tests/**", "README.md", "LICENSE", "Cargo.toml"]
+
+[dependencies]
+serde = "1"
+serde_json = "1"
+wasmi = "2"
+
+[dev-dependencies]
+serde = { version = "1", features = ["derive"] }
