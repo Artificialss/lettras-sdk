@@ -50,6 +50,7 @@ Every library on one page: [docs/LIBRARIES.md](docs/LIBRARIES.md).
 - [MCP server](#mcp-server)
 - [Text styles](#text-styles)
 - [Crossword (crucigrama)](#crossword-crucigrama)
+- [Blocked words](#blocked-words)
 - [Sudoku](#sudoku)
 - [How puzzles are built](#how-puzzles-are-built)
 - [Architecture and licensing](#architecture-and-licensing)
@@ -601,6 +602,9 @@ Reference: [docs/SUDOKU.md](docs/SUDOKU.md) · Kotlin: [kotlin/README.md](kotlin
 5. **Fill** (a separate call). Empty cells get random letters, weighted by how common each letter is in the chosen
    language, with accents on or off. About 30% copy letters already in the grid so rare letters do not give the hidden
    words away, and any accidental extra copy of a hidden word is repaired.
+6. **Check for blocked words.** The finished grid is read in every row, column and diagonal, both ways, ignoring case and
+   accents. If the filler letters spell a word from the built-in blocklist, one of them is changed and the grid is checked
+   again. The words you hide are never touched. See [Blocked words](#blocked-words).
 
 Deterministic: the same input and seed give the same grid everywhere, on every platform.
 
@@ -669,6 +673,20 @@ cd mcp && cargo test --release      # 43 tests, including exact parity with the 
 ```
 
 The compiled engine in `engine/` comes from Lettras' own build, so pull requests that change it cannot be accepted. Issues and suggestions about the wrappers, the MCP server or the docs are welcome.
+
+## Blocked words
+
+Random filler can spell a word by accident, so the engine carries a built-in list of words that must never show up in a
+puzzle, for all six languages together (a puzzle in one language can spell a word of another). It covers vulgar and sexual
+terms, slurs and insults, drugs, alcohol, violence and weapons, death, self-harm, and other words we judged unsuitable for
+children. The current release holds about 30,600 words; the next one raises it to about 36,700 (plain A-Z, 3 to 12 letters,
+checked in every row, column and diagonal in both directions, ignoring case and accents).
+
+- Filler is repaired automatically: a blocked word is never left in a grid you fill.
+- `findBlocked` (npm and Kotlin) returns any blocked words still readable in a grid, for example one you hid yourself;
+  the fill result lists them in `blockedLeft` when there are any.
+- The list is the same one that keeps these words out of the lettras.org dictionary, where every word also has a short,
+  child-safe description that serves as the crossword clue. The lettras.org crossword maker only uses words that have one.
 
 ## Limits of the engine
 
