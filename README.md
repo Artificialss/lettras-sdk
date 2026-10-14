@@ -37,6 +37,8 @@ kept as one cell each, from your own code, a terminal, or an AI assistant. Besid
 > (also listed in the official MCP Registry). The Rust, Go, Swift and .NET libraries are built and tested here and are being
 > published to their own package registries (crates.io, pkg.go.dev, Swift Package Index, NuGet). A documentation site is planned.
 
+Every library on one page: [docs/LIBRARIES.md](docs/LIBRARIES.md).
+
 ## Table of contents
 
 - [npm package](#npm-package)

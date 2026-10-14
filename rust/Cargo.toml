@@ -1,6 +1,6 @@
 [package]
 name = "lettras"
-version = "0.5.1"
+version = "0.5.2"
 edition = "2021"
 rust-version = "1.75"
 description = "Word-search, crossword and sudoku generators plus Unicode text styles for es, en, pt, fr, de and it, with native accents kept. Runs locally, no network."

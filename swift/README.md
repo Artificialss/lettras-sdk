@@ -6,7 +6,7 @@ accented letters kept (one cell each). The engine runs in-process: no network, n
 Swift Package Manager (Xcode: File > Add Package Dependencies, or `Package.swift`):
 
 ```swift
-.package(url: "https://github.com/Artificialss/lettras-sdk.git", from: "0.5.1")
+.package(url: "https://github.com/Artificialss/lettras-sdk.git", from: "0.5.2")
 // target dependency: .product(name: "Lettras", package: "lettras-sdk")
 ```
 
