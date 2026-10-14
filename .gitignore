@@ -38,3 +38,12 @@ gnupg/
 maven-central.env
 maven-signing-*
 signing.properties
+.vercel
+.env*
+
+# Swift / .NET / Go
+.build/
+.swiftpm/
+Package.resolved
+bin/
+obj/

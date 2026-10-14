@@ -1,0 +1,12 @@
+name: lettras
+description: Word-search, crossword and sudoku generators plus Unicode text styles for 6 languages, with native accents kept. Runs locally, no network.
+version: 0.5.2
+homepage: https://www.lettras.org
+repository: https://github.com/Artificialss/lettras-sdk
+issue_tracker: https://github.com/Artificialss/lettras-sdk/issues
+environment:
+  sdk: ^3.3.0
+dependencies:
+  wasm_run: ^0.1.0
+dev_dependencies:
+  test: ^1.25.0
