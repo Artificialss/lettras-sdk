@@ -106,3 +106,7 @@ Options: `entries`, `rows`, `cols`, `seed`, `attempts` (1 to 200, default 30: mo
 | `0` | A letter goes here, but no word starts here (change it with `open`). |
 
 In `solution` every letter cell holds one grapheme (`Ñ` and `ẞ` are one cell) and blanks are `-`.
+
+## Clues from the dictionary
+
+On lettras.org the crossword maker takes its words from a dictionary where every word has a short, child-safe description in its language, and uses that description as the clue. Only words with a description are offered, optionally narrowed to up to 8 topics. With the library you bring your own words and clues. The word-search filler is protected by a blocklist: see [Blocked words](../README.md#blocked-words).
