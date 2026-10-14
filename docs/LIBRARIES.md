@@ -17,7 +17,7 @@ the same puzzle in every language, on every platform.
 | Command line | `lettras` (npm CLI) | `npx lettras --words ...` | WebAssembly | Node |
 | Command line | Homebrew formula | `brew install artificialss/lettras/lettras` | Node, via the npm package | macOS, Linux |
 | VS Code | `artificialss.lettras` | VS Code Marketplace | the npm package, bundled | VS Code 1.85+ |
-| JetBrains IDEs | Lettras plugin | JetBrains Marketplace | the Kotlin library | IntelliJ Platform 2024.1+ |
+| JetBrains IDEs | `ai.artificialss.lettras` (name Lettras) | JetBrains Marketplace ([upload guide](JETBRAINS_MARKETPLACE.md)) | the Kotlin library | IntelliJ Platform 2024.1+ |
 
 Registries: npm, Maven Central and the MCP Registry are live. The Rust, Go, Swift, .NET and Dart packages, the editor extensions and the Homebrew formula are in this repository and are being published to crates.io, pkg.go.dev, the Swift
 Package Index, NuGet, pub.dev, the two marketplaces and a Homebrew tap; until they are listed, depend on this repository (Go and Swift resolve it by Git tag).

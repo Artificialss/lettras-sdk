@@ -33,7 +33,7 @@ kept as one cell each, from your own code, a terminal, or an AI assistant. Besid
 | **`lettras` for Rust** | Rust crate, engine embedded and run in-process | `cargo add lettras` | [`rust/`](rust) |
 | **`lettras` for Dart and Flutter** | Dart package, engine embedded and run in-process | `dart pub add lettras` ([pub.dev](https://pub.dev/packages/lettras)) | [`dart/`](dart) |
 | **Lettras for VS Code** | Extension: write text in 22 Unicode styles, insert word searches and sudokus | VS Code Marketplace, `artificialss.lettras` | [`vscode/`](vscode) |
-| **Lettras for JetBrains** | Plugin for IntelliJ IDEA, PyCharm, WebStorm, Android Studio and more | JetBrains Marketplace, "Lettras" | [`jetbrains/`](jetbrains) |
+| **Lettras for JetBrains** | Plugin for IntelliJ IDEA, PyCharm, WebStorm, Android Studio and more | JetBrains Marketplace, "Lettras" (id `ai.artificialss.lettras`) | [`jetbrains/`](jetbrains), [upload guide](docs/JETBRAINS_MARKETPLACE.md) |
 | **`lettras` for Homebrew** | The command-line tool as a formula, no Node setup | `brew install artificialss/lettras/lettras` | [`homebrew/`](homebrew) |
 | **Lettras MCP server** | Lets Claude and other MCP clients create puzzles. Written in Rust, runs on Vercel | `https://mcp.lettras.org/mcp` ([MCP Registry](https://registry.modelcontextprotocol.io/v0.1/servers?search=org.lettras/word-search)) | [`mcp/`](mcp) |
 

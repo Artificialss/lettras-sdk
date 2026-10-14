@@ -24,7 +24,7 @@ cd jetbrains
 ```
 
 The first build downloads the IntelliJ Platform (about 1 GB). Install the zip from **Settings > Plugins > gear icon > Install Plugin from Disk**, or publish it to the
-JetBrains Marketplace.
+JetBrains Marketplace (steps and listing text: [`docs/JETBRAINS_MARKETPLACE.md`](../docs/JETBRAINS_MARKETPLACE.md)).
 
 ## License
 

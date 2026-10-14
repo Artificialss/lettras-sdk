@@ -1,7 +1,7 @@
 <idea-plugin>
-    <id>org.lettras.jetbrains</id>
+    <id>ai.artificialss.lettras</id>
     <name>Lettras</name>
-    <vendor url="https://www.lettras.org">Artificialss</vendor>
+    <vendor url="https://www.lettras.org" email="info@artificialss.ai">Artificialss</vendor>
     <description><![CDATA[
         Insert word searches and sudokus, and write selected text in <b>22 Unicode styles</b> that keep accents (bold, italic, script,
         fraktur, circled, strikethrough...). Six languages: Spanish, English, Portuguese, French, German and Italian. The engine runs
@@ -14,13 +14,13 @@
     ]]></description>
     <depends>com.intellij.modules.platform</depends>
     <actions>
-        <group id="org.lettras.jetbrains.Menu" text="Lettras" popup="true">
+        <group id="ai.artificialss.lettras.Menu" text="Lettras" popup="true">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
-            <action id="org.lettras.jetbrains.StyleSelection" class="org.lettras.jetbrains.StyleSelectionAction"
+            <action id="ai.artificialss.lettras.StyleSelection" class="org.lettras.jetbrains.StyleSelectionAction"
                     text="Write Selection in a Unicode Style" description="Replace the selected text with a Unicode style that keeps accents"/>
-            <action id="org.lettras.jetbrains.InsertWordSearch" class="org.lettras.jetbrains.InsertWordSearchAction"
+            <action id="ai.artificialss.lettras.InsertWordSearch" class="org.lettras.jetbrains.InsertWordSearchAction"
                     text="Insert a Word Search" description="Insert a word search with your words at the caret"/>
-            <action id="org.lettras.jetbrains.InsertSudoku" class="org.lettras.jetbrains.InsertSudokuAction"
+            <action id="ai.artificialss.lettras.InsertSudoku" class="org.lettras.jetbrains.InsertSudokuAction"
                     text="Insert a Sudoku" description="Insert a sudoku with one solution at the caret"/>
         </group>
     </actions>

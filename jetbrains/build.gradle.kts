@@ -36,6 +36,13 @@ java {
 
 intellijPlatform {
     pluginConfiguration {
+        changeNotes = """
+            <ul>
+                <li>Write the selected text in 22 Unicode styles that keep accents.</li>
+                <li>Insert a word search or a sudoku with one solution at the caret.</li>
+                <li>Six languages, runs locally in the IDE: no network, no API key.</li>
+            </ul>
+        """.trimIndent()
         ideaVersion {
             sinceBuild = "241"
             untilBuild = provider { null }
