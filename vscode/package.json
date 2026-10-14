@@ -1,0 +1,41 @@
+{
+  "name": "lettras",
+  "displayName": "Lettras: puzzles and text styles",
+  "description": "Insert word searches and sudokus, and write selected text in 22 Unicode styles that keep accents. Six languages, runs locally.",
+  "version": "0.5.2",
+  "publisher": "artificialss",
+  "license": "SEE LICENSE IN LICENSE",
+  "icon": "icon.png",
+  "repository": { "type": "git", "url": "https://github.com/Artificialss/lettras-sdk.git", "directory": "vscode" },
+  "homepage": "https://www.lettras.org",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other", "Snippets"],
+  "keywords": ["word search", "sudoku", "crossword", "unicode", "text styles", "fancy text", "puzzle"],
+  "main": "./out/extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "commands": [
+      { "command": "lettras.styleSelection", "title": "Lettras: Write selection in a Unicode style" },
+      { "command": "lettras.insertWordSearch", "title": "Lettras: Insert a word search" },
+      { "command": "lettras.insertSudoku", "title": "Lettras: Insert a sudoku" }
+    ],
+    "configuration": {
+      "title": "Lettras",
+      "properties": {
+        "lettras.language": {
+          "type": "string",
+          "default": "es",
+          "enum": ["es", "en", "pt", "fr", "de", "it"],
+          "description": "Language of the words in word searches (accents are kept)."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "esbuild src/extension.js --bundle --platform=node --format=cjs --external:vscode --outfile=out/extension.js --minify",
+    "test": "node --test test/*.test.mjs",
+    "package": "npm run build && vsce package --no-dependencies"
+  },
+  "dependencies": { "lettras": "^0.5.1" },
+  "devDependencies": { "esbuild": "^0.24.0", "@vscode/vsce": "^3.2.0" }
+}

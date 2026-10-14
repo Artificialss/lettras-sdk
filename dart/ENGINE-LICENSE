@@ -1,0 +1,19 @@
+Lettras compiled engine: proprietary license
+
+Copyright (c) 2026 Artificialss. All rights reserved.
+
+This directory contains the compiled Lettras word-search engine (WebAssembly and the
+generated loader code). It is NOT covered by the MIT license that applies to the rest of
+this repository.
+
+You may use this engine, unmodified and only as distributed in the `lettras` npm package
+or this repository, to generate puzzles in your own applications, including commercial
+ones, free of charge.
+
+You may not, without written permission from Artificialss:
+  - copy, extract or redistribute the engine separately from the `lettras` package;
+  - modify it, or create derivative works of it;
+  - decompile, disassemble or otherwise attempt to derive its source code or algorithm;
+  - use it to build a competing puzzle-generation service or library.
+
+THE ENGINE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.

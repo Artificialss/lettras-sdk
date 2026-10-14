@@ -31,11 +31,15 @@ kept as one cell each, from your own code, a terminal, or an AI assistant. Besid
 | **`lettras` for Swift** | Swift package for Apple platforms and Linux | `https://github.com/Artificialss/lettras-sdk` ([SwiftPM](swift/README.md)) | [`swift/`](swift) |
 | **`Lettras` for .NET** | C# library for .NET 8+ on Windows, macOS and Linux | `dotnet add package Lettras` | [`dotnet/`](dotnet) |
 | **`lettras` for Rust** | Rust crate, engine embedded and run in-process | `cargo add lettras` | [`rust/`](rust) |
+| **`lettras` for Dart and Flutter** | Dart package, engine embedded and run in-process | `dart pub add lettras` ([pub.dev](https://pub.dev/packages/lettras)) | [`dart/`](dart) |
+| **Lettras for VS Code** | Extension: write text in 22 Unicode styles, insert word searches and sudokus | VS Code Marketplace, `artificialss.lettras` | [`vscode/`](vscode) |
+| **Lettras for JetBrains** | Plugin for IntelliJ IDEA, PyCharm, WebStorm, Android Studio and more | JetBrains Marketplace, "Lettras" | [`jetbrains/`](jetbrains) |
+| **`lettras` for Homebrew** | The command-line tool as a formula, no Node setup | `brew install artificialss/lettras/lettras` | [`homebrew/`](homebrew) |
 | **Lettras MCP server** | Lets Claude and other MCP clients create puzzles. Written in Rust, runs on Vercel | `https://mcp.lettras.org/mcp` ([MCP Registry](https://registry.modelcontextprotocol.io/v0.1/servers?search=org.lettras/word-search)) | [`mcp/`](mcp) |
 
 > **Published.** Live today: the npm package, the Kotlin library on Maven Central (which also serves Java), and the hosted MCP server
-> (also listed in the official MCP Registry). The Rust, Go, Swift and .NET libraries are built and tested here and are being
-> published to their own package registries (crates.io, pkg.go.dev, Swift Package Index, NuGet). A documentation site is planned.
+> (also listed in the official MCP Registry). The Rust, Go, Swift, .NET and Dart libraries, the VS Code extension, the JetBrains plugin and the Homebrew formula are built and tested here and are being
+> published to their own stores (crates.io, pkg.go.dev, Swift Package Index, NuGet, pub.dev, the VS Code and JetBrains marketplaces, a Homebrew tap). A documentation site is planned.
 
 Every library on one page: [docs/LIBRARIES.md](docs/LIBRARIES.md).
 
@@ -615,7 +619,7 @@ Deterministic: the same input and seed give the same grid everywhere, on every p
 
 This repository contains the **wrappers, CLI, MCP server, tests and documentation**. The puzzle engine itself is
 developed in a private repository and ships here only as compiled WebAssembly in `npm/engine/`, `mcp/engine/`,
-`kotlin/src/main/resources/`, `rust/engine/`, `go/engine/`, `swift/Sources/Lettras/Resources/` and `dotnet/src/Lettras/`.
+`kotlin/src/main/resources/`, `rust/engine/`, `go/engine/`, `swift/Sources/Lettras/Resources/`, `dotnet/src/Lettras/` and `dart/lib/src/engine_data.dart`.
 All copies come from the same build and are checked against each other: the MCP server's and the Kotlin library's
 tests assert that they return exactly the same grids as the npm package for the same input.
 
@@ -633,6 +637,10 @@ rust/                the `lettras` crate (crates.io): API, wasmi host, tests
 go/                  Go module: API, wazero host (pure Go), tests
 swift/               Swift package (Package.swift is at the repository root): API, WasmKit host, tests
 dotnet/              .NET package `Lettras`: API, Wasmtime host, tests
+dart/                Dart and Flutter package `lettras` (pub.dev): API, wasm_run host, tests
+vscode/              VS Code extension (uses the npm package): commands, tests, packaging
+jetbrains/           JetBrains plugin (uses the Kotlin library): actions, tests
+homebrew/            Homebrew formula for the command-line tool
 .env.example         every optional setting, with no values
 ```
 
@@ -649,6 +657,9 @@ cd kotlin && ./gradlew test         # 33 tests, including exact parity with the 
 cd rust && cargo test               # 6 tests + doc test
 cd go && go test ./...              # 3 tests; cross-build with GOOS=linux GOARCH=arm64 go build ./...
 swift test                          # 4 tests (repository root)
+cd dart && dart test                # 4 tests (run `dart run wasm_run:setup` once first)
+cd vscode && npm test               # 5 tests; npm run package builds the .vsix
+cd jetbrains && ./gradlew test      # 5 tests; ./gradlew buildPlugin builds the zip
 cd dotnet/tests/Lettras.Tests && dotnet test    # 4 tests (.NET 8)
 
 # MCP server (Rust 1.80+)
@@ -669,7 +680,7 @@ inputs (combining marks, emoji, right-to-left text, zero-width joiners, garbage 
 ## License
 
 The code in this repository is released under the [MIT License](LICENSE), **except** the compiled engine in
-`npm/engine/`, `mcp/engine/`, `kotlin/src/main/resources/org/lettras/`, `rust/engine/`, `go/engine/`, `swift/Sources/Lettras/Resources/` and `dotnet/src/Lettras/`, which is proprietary and covered by its own license (`engine/LICENSE`): you may use it
+`npm/engine/`, `mcp/engine/`, `kotlin/src/main/resources/org/lettras/`, `rust/engine/`, `go/engine/`, `swift/Sources/Lettras/Resources/`, `dotnet/src/Lettras/` and `dart/lib/src/engine_data.dart`, which is proprietary and covered by its own license (`engine/LICENSE`): you may use it
 unmodified, through this package or server, in your own products, including commercial ones, but you may not extract,
 redistribute, modify or reverse-engineer it.
 
