@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>org.lettras.jetbrains</id>
     <name>Lettras</name>
-    <vendor url="https://www.lettras.org">Artificialss</vendor>
+    <vendor url="https://www.lettras.org" email="info@artificialss.ai">Artificialss</vendor>
     <description><![CDATA[
         Insert word searches and sudokus, and write selected text in <b>22 Unicode styles</b> that keep accents (bold, italic, script,
         fraktur, circled, strikethrough...). Six languages: Spanish, English, Portuguese, French, German and Italian. The engine runs
