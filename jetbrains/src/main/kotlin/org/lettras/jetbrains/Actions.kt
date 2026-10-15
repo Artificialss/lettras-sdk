@@ -7,6 +7,7 @@ import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.ui.popup.JBPopupFactory
 import org.lettras.Language
 
 abstract class EditorAction : AnAction() {
@@ -30,11 +31,17 @@ class StyleSelectionAction : EditorAction() {
         val editor = e.getData(CommonDataKeys.EDITOR) ?: return
         val selected = editor.selectionModel.selectedText ?: return
         val choices = Core.styleChoices()
-        val index = Messages.showChooseDialog("Pick a Unicode style", "Lettras", choices.map { it.second }.toTypedArray(), choices.first().second, null)
-        if (index < 0) return
-        val (styled, missing) = Core.styleText(selected, choices[index].first)
-        editor.replaceSelection(styled)
-        if (missing.isNotEmpty()) Messages.showWarningDialog("This style cannot draw: ${missing.joinToString(" ")}", "Lettras")
+        JBPopupFactory.getInstance()
+            .createPopupChooserBuilder(choices.map { it.second })
+            .setTitle("Lettras: pick a Unicode style")
+            .setItemChosenCallback { name ->
+                val choice = choices.firstOrNull { it.second == name } ?: return@setItemChosenCallback
+                val (styled, missing) = Core.styleText(selected, choice.first)
+                editor.replaceSelection(styled)
+                if (missing.isNotEmpty()) Messages.showWarningDialog(editor.project, "This style cannot draw: ${missing.joinToString(" ")}", "Lettras")
+            }
+            .createPopup()
+            .showInBestPositionFor(editor)
     }
 }
 
@@ -48,7 +55,7 @@ class InsertWordSearchAction : EditorAction() {
         try {
             editor.insertAtCaret(Core.wordSearchText(words, lang))
         } catch (ex: Exception) {
-            Messages.showErrorDialog(ex.message ?: "Could not make the word search", "Lettras")
+            Messages.showErrorDialog(editor.project, ex.message ?: "Could not make the word search", "Lettras")
         }
     }
 }
@@ -57,10 +64,10 @@ class InsertSudokuAction : EditorAction() {
     override fun actionPerformed(e: AnActionEvent) {
         val editor = e.getData(CommonDataKeys.EDITOR) ?: return
         val sizes = arrayOf("4", "6", "9", "12", "16")
-        val s = Messages.showChooseDialog("Size", "Lettras: Sudoku", sizes, "9", null)
+        val s = Messages.showDialog(editor.project, "Size", "Lettras: Sudoku", sizes, 2, null)
         if (s < 0) return
         val levels = arrayOf("1 (easy)", "2", "3", "4 (hard)")
-        val l = Messages.showChooseDialog("Difficulty", "Lettras: Sudoku", levels, "2", null)
+        val l = Messages.showDialog(editor.project, "Difficulty", "Lettras: Sudoku", levels, 1, null)
         if (l < 0) return
         editor.insertAtCaret(Core.sudokuText(sizes[s].toInt(), l + 1))
     }

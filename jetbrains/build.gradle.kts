@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "org.lettras"
-version = "0.5.2"
+version = "0.5.3"
 
 repositories {
     mavenCentral()
@@ -38,6 +38,7 @@ intellijPlatform {
     pluginConfiguration {
         changeNotes = """
             <ul>
+                <li>No deprecated IDE API: the style picker is a list popup, the sudoku size and difficulty are button dialogs.</li>
                 <li>Write the selected text in 22 Unicode styles that keep accents.</li>
                 <li>Insert a word search or a sudoku with one solution at the caret.</li>
                 <li>Six languages, runs locally in the IDE: no network, no API key.</li>
@@ -49,4 +50,7 @@ intellijPlatform {
         }
     }
     buildSearchableOptions = false
+    pluginVerification {
+        ides { recommended() }
+    }
 }
